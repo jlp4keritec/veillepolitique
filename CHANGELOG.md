@@ -1,5 +1,33 @@
 # CHANGELOG - VEILLE
 
+## [0.3.1] - 2026-11-22 - Design "Glassy Dashboard"
+
+### Modifie
+- Pages : design Glassy Dashboard de J (fond bleu nuit, halos indigo/cyan/magenta, cartes en verre),
+  version compacte, polices de l'appareil (aucun appel a Google Fonts).
+- Barre laterale (ordinateur) / barre du haut (telephone), encart Budget IA avec jauge.
+- Accueil : 4 indicateurs avec mini-courbes mesurees (articles et evenements par heure sur 24 h),
+  pastilles de couleur pour score et verification, repartition des themes sur 24 h.
+- Fiche evenement : les 6 criteres du score en barres de progression, tableau des fenetres de tendance.
+- Nouveau parametre nom_affiche (prenom sur l'accueil).
+
+## [0.3.0] - 2026-11-22 - Pages de lecture (F10) + mot de passe
+
+### Ajoute
+- Pages web en lecture seule : accueil (etat, alertes du jour, top 24 h, dernier briefing),
+  archives (briefings, syntheses, points, alertes), lecture d'un message, fiche evenement
+  (score detaille par critere, tendance, verification, chronologie et liens), recherche F10.
+- Protection par mot de passe (MOT_DE_PASSE_PAGES dans .env) : vide = pas de protection (usage local) ;
+  renseigne = pages ET API protegees sauf /api/v1/health ; session 30 jours (cookie signe, HttpOnly) ;
+  blocage apres 5 essais rates en 15 min ; changer le mot de passe deconnecte tout le monde.
+- Securite : contenu collecte echappe (2 protections), liens limites a http(s), pas de redirection
+  vers un autre site, pages non indexees par les moteurs de recherche.
+- 9 tests (76 au total).
+
+### Modifie
+- requirements.txt : + jinja2, markupsafe.
+- relancer-tout (Mac et Windows) : ouvre la page d'accueil.
+
 ## [0.2.4] - 2026-11-22 - Reglages classement, 2e passe sur donnees reelles
 
 ### Modifie

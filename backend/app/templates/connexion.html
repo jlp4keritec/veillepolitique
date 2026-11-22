@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="fr">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex, nofollow">
+<title>Connexion · VEILLE</title>
+<style>
+body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:#070b1a;color:#eef1ff;
+font:14px/1.4 Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;overflow:hidden}
+.halo{position:fixed;border-radius:50%;pointer-events:none}
+.h1{top:-160px;left:-120px;width:560px;height:560px;background:radial-gradient(circle,#818cf8 0%,rgba(99,102,241,0) 70%);opacity:.7}
+.h2{bottom:-200px;right:-160px;width:620px;height:620px;background:radial-gradient(circle,#22d3ee 0%,rgba(34,211,238,0) 70%);opacity:.4}
+.boite{position:relative;width:min(340px,90vw);padding:18px;border-radius:16px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.14);
+backdrop-filter:blur(22px) saturate(150%);-webkit-backdrop-filter:blur(22px) saturate(150%)}
+h1{margin:0 0 10px;font:700 18px "Space Grotesk",ui-rounded,-apple-system,sans-serif}
+input{width:100%;height:38px;padding:0 12px;border-radius:10px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.16);color:#eef1ff;font:inherit;box-sizing:border-box}
+button{width:100%;height:38px;margin-top:8px;border:0;border-radius:10px;background:#fff;color:#0b1020;font:600 14px inherit;cursor:pointer}
+.err{color:#fecdd3;margin:0 0 8px}.doux{color:rgba(238,241,255,.68);font-size:12px;margin:10px 0 0}
+</style></head>
+<body>
+<div class="halo h1"></div><div class="halo h2"></div>
+<div class="boite">
+<h1>VEILLE</h1>
+{% if erreur == 'faux' %}<p class="err">Mot de passe incorrect.</p>{% endif %}
+{% if erreur == 'bloque' %}<p class="err">Trop d'essais. Réessayez dans 15 minutes.</p>{% endif %}
+<form method="post" action="/connexion">
+<input type="hidden" name="suite" value="{{ suite }}">
+<input type="password" name="mot_de_passe" autocomplete="current-password" placeholder="Mot de passe" aria-label="Mot de passe" autofocus required>
+<button>Entrer</button>
+</form>
+<p class="doux">Session mémorisée 30 jours sur cet appareil.</p>
+</div>
+</body>
+</html>

@@ -99,6 +99,8 @@ DEFAUTS: dict[str, tuple[Any, str]] = {
     "alerte_delta_sources": (2, "Nouvelles sources qui justifient une mise a jour d'alerte"),
     "alerte_max_mises_a_jour": (3, "Nombre maximal de mises a jour par evenement"),
     "alerte_fiabilite_min": (4, "Fiabilite min. d'une source unique pour alerter"),
+    # --- Pages ---
+    "nom_affiche": ("Jean-Luc", "Prenom affiche sur l'accueil des pages"),
     # --- Syntheses (F06-F08) ---
     "heure_briefing": ("08:00", "Heure du briefing matinal (Paris)"),
     "heure_synthese_soir": ("20:00", "Heure de la synthese du soir (Paris)"),
