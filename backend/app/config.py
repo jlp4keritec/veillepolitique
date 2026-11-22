@@ -27,6 +27,8 @@ class Settings(BaseSettings):
     veille_db_path: str = "data/veille.db"
     fuseau_horaire: str = "Europe/Paris"
     scheduler_actif: bool = True
+    # Vide = pas de protection (usage local). Renseigne = pages et API protegees.
+    mot_de_passe_pages: SecretStr = SecretStr("")
 
     @property
     def db_path(self) -> Path:

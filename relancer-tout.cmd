@@ -4,7 +4,7 @@ REM relancer-tout.cmd - Redemarre VEILLE en local
 REM 1. Ferme le backend - port 8710
 REM 2. Lance les tests du backend - s'arrete s'ils echouent
 REM 3. Relance le backend, attend qu'il reponde
-REM 4. Ouvre la page de sante dans le navigateur
+REM 4. Ouvre la page d'accueil dans le navigateur
 REM Ne touche qu'au port de ce projet.
 REM Le frontend sera ajoute a ce script en phase dashboard.
 REM ============================================================
@@ -36,7 +36,7 @@ goto backfail
 
 :backok
 echo [OK] Backend pret sur http://127.0.0.1:%BACK%
-start "" http://127.0.0.1:%BACK%/api/v1/health
+start "" http://127.0.0.1:%BACK%/
 echo.
 echo La fenetre VEILLE-backend reste ouverte.
 echo Pour arreter : relancez ce script ou fermez cette fenetre.

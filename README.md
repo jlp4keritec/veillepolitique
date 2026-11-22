@@ -28,9 +28,13 @@ Toutes les 5 min : collecte RSS → filtrage → classification → regroupement
 score, vérification → alerte si critique. Chaque minute : briefing 08:00, synthèse 20:00,
 point de veille toutes les 2 h. Toutes les 5 s : lecture des commandes Telegram de J.
 
+## Pages de lecture
+http://127.0.0.1:8710/ — accueil, archives, fiche événement (score expliqué), recherche.
+Mot de passe : `MOT_DE_PASSE_PAGES` dans `backend/.env` (vide = pas de protection, en local seulement).
+
 ## API locale (documentation interactive : http://127.0.0.1:8710/docs)
 `/api/v1/health` · `sources` · `parametres` · `themes` · `evenements` · `articles` ·
 `notifications` · `journal` · `couts` · `question` · `cycle` · `syntheses/{type}` · `pause` · `reprise`
 
 ## État
-Version 0.2.0 : MVP phase 1 codé, testé en simulé, à valider en réel. Voir `CHANGELOG.md`.
+Version 0.3.0 : MVP + pages de lecture. Collecte testée en réel le 22/11/2026. Voir `CHANGELOG.md`.

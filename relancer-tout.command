@@ -4,7 +4,7 @@
 # 1. Ferme le backend - port 8710 uniquement
 # 2. Lance les tests - s'arrete s'ils echouent
 # 3. Relance le backend dans une nouvelle fenetre Terminal
-# 4. Attend qu'il reponde puis ouvre la page de sante
+# 4. Attend qu'il reponde puis ouvre la page d'accueil
 # ============================================================
 source "$(dirname "$0")/_commun.sh"
 
@@ -39,7 +39,7 @@ open -a Terminal "$RACINE/start-backend.command"
 for i in $(seq 1 90); do
     if curl -s -o /dev/null "http://127.0.0.1:$PORT/api/v1/health"; then
         echo "[OK] Backend pret sur http://127.0.0.1:$PORT"
-        open "http://127.0.0.1:$PORT/api/v1/health"
+        open "http://127.0.0.1:$PORT/"
         echo "La fenetre du backend reste ouverte. Pour arreter : Ctrl+C dans cette fenetre."
         sleep 2
         exit 0

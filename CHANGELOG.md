@@ -1,16 +1,5 @@
 # CHANGELOG - VEILLE
 
-## [0.3.1] - 2026-11-22 - Design "Glassy Dashboard"
-
-### Modifie
-- Pages : design Glassy Dashboard de J (fond bleu nuit, halos indigo/cyan/magenta, cartes en verre),
-  version compacte, polices de l'appareil (aucun appel a Google Fonts).
-- Barre laterale (ordinateur) / barre du haut (telephone), encart Budget IA avec jauge.
-- Accueil : 4 indicateurs avec mini-courbes mesurees (articles et evenements par heure sur 24 h),
-  pastilles de couleur pour score et verification, repartition des themes sur 24 h.
-- Fiche evenement : les 6 criteres du score en barres de progression, tableau des fenetres de tendance.
-- Nouveau parametre nom_affiche (prenom sur l'accueil).
-
 ## [0.3.0] - 2026-11-22 - Pages de lecture (F10) + mot de passe
 
 ### Ajoute

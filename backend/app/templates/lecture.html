@@ -1,15 +1,14 @@
 {% extends "base.html" %}
 {% block contenu %}
-<section class="carte verre ligne">
-<span class="pilule {{ 'p-crit' if n.type == 'alerte' else 'p-acc' }}">{{ TYPES.get(n.type, n.type) }}</span>
-<span class="doux">{{ n.envoye_le | jour }} {{ n.envoye_le | paris('%H:%M') }}</span>
+<div class="carte ligne">
+<span class="tag">{{ TYPES.get(n.type, n.type) }}</span><span class="doux">{{ n.envoye_le | jour }} {{ n.envoye_le | paris('%H:%M') }}</span>
 {% if n.statut != 'envoye' %}<span class="doux">· statut : {{ n.statut }}</span>{% endif %}
-{% if n.evenement_id %}<a href="/evenement/{{ n.evenement_id }}" style="margin-left:auto">Détail de l'événement →</a>{% endif %}
-</section>
-<section class="carte verre texte">{{ contenu }}</section>
-<section class="carte verre ligne">
+{% if n.evenement_id %}<a href="/evenement/{{ n.evenement_id }}">détail de l'événement</a>{% endif %}
+</div>
+<div class="carte texte">{{ contenu }}</div>
+<div class="carte ligne">
 {% if suiv %}<a href="/lecture/{{ suiv.id }}">← suivant</a>{% endif %}
-<a href="/archives?type={{ n.type }}" style="margin:0 auto">archives</a>
+<a href="/archives?type={{ n.type }}">archives</a>
 {% if prec %}<a href="/lecture/{{ prec.id }}">précédent →</a>{% endif %}
-</section>
+</div>
 {% endblock %}

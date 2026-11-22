@@ -6,13 +6,15 @@ Pas d'authentification : ne JAMAIS l'exposer sur internet sans protection.
 
 import json
 import logging
+from urllib.parse import quote
 from contextlib import asynccontextmanager
 from typing import Any, Literal
 
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, Query, Request
+from fastapi.responses import JSONResponse, RedirectResponse
 from pydantic import BaseModel, Field
 
-from app import __version__, parametres
+from app import __version__, auth, parametres
 from app.config import get_settings
 from app.db import get_etat, session
 from app.ia import etat_budget
@@ -43,6 +45,23 @@ async def lifespan(_: FastAPI):
 
 
 app = FastAPI(title="VEILLE", version=__version__, lifespan=lifespan)
+
+
+@app.middleware("http")
+async def protection(request: Request, call_next):
+    """Si un mot de passe est regle : tout est protege sauf /connexion et /api/v1/health."""
+    chemin = request.url.path
+    if auth.protection_active() and chemin not in auth.PUBLIC and not auth.connecte(request):
+        if chemin.startswith("/api/") or chemin in ("/docs", "/openapi.json", "/redoc"):
+            return JSONResponse({"detail": "connexion requise"}, status_code=401)
+        suite = chemin + (f"?{request.url.query}" if request.url.query else "")
+        return RedirectResponse(f"/connexion?suite={quote(suite)}", status_code=303)
+    return await call_next(request)
+
+
+from app.pages import router as pages_router  # noqa: E402
+
+app.include_router(pages_router)
 
 
 def db():
