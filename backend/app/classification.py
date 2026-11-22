@@ -6,6 +6,7 @@ listes autorisees ici.
 """
 
 import json
+import re
 import sqlite3
 from dataclasses import dataclass, field
 
@@ -25,21 +26,34 @@ class Classement:
     type_evenement: str | None = None
 
 
+PARTICULES = {"de", "du", "d", "le", "la", "les", "von", "van"}
+
+
+def page_sujet(titre: str, max_mots: int = 4) -> bool:
+    """Titre fait uniquement de noms propres ("Marine Le Pen") : page sujet d'un media."""
+    mots = re.findall(r"[\w’'-]+", titre or "")
+    if not mots or len(mots) > max_mots:
+        return False
+    return all(m[:1].isupper() or m.lower() in PARTICULES for m in mots) and any(m[:1].isupper() for m in mots)
+
+
 def classer(titre_norm: str, texte_norm: str, source_zone: str, params: dict,
-            themes: dict[str, list[str]]) -> Classement:
+            themes: dict[str, list[str]], titre: str = "") -> Classement:
     texte = f"{titre_norm} {texte_norm}"
-    if len(titre_norm.split()) < params["titre_mots_min"]:
+    if len(titre_norm.split()) < params["titre_mots_min"] or page_sujet(titre):
         return Classement(False, "titre trop court (page sujet d'un media)")
     for mot in params["mots_exclus"]:
         if contient(texte, mot):
             return Classement(False, f"mot exclu : {mot}")
 
-    # Themes : le titre compte double
+    # Themes : 1 mot-cle dans le titre suffit ; dans le resume seul, il en faut
+    # theme_resume_mots_min DIFFERENTS (evite les themes "au hasard"). Le titre compte double.
     scores: dict[str, int] = {}
     for nom, mots in themes.items():
-        s = sum(2 if contient(titre_norm, m) else 1 if contient(texte_norm, m) else 0 for m in mots)
-        if s:
-            scores[nom] = s
+        dans_titre = [m for m in mots if contient(titre_norm, m)]
+        dans_resume = [m for m in mots if m not in dans_titre and contient(texte_norm, m)]
+        if dans_titre or len(dans_resume) >= params["theme_resume_mots_min"]:
+            scores[nom] = 2 * len(dans_titre) + len(dans_resume)
     themes_trouves = sorted(scores, key=lambda n: (-scores[n], n))
 
     regional = source_zone == "regional" or any(contient(texte, m) for m in params["zone_regionale_mots"])
@@ -82,10 +96,10 @@ def classer_nouveaux(conn: sqlite3.Connection) -> tuple[int, int]:
     themes = themes_actifs(conn)
     ok = ko = 0
     rows = conn.execute(
-        "SELECT a.id, a.titre_norm, a.texte_norm, s.zone AS szone FROM articles a "
+        "SELECT a.id, a.titre, a.titre_norm, a.texte_norm, s.zone AS szone FROM articles a "
         "JOIN sources s ON s.id = a.source_id WHERE a.pertinent IS NULL").fetchall()
     for r in rows:
-        c = classer(r["titre_norm"], r["texte_norm"], r["szone"], params, themes)
+        c = classer(r["titre_norm"], r["texte_norm"], r["szone"], params, themes, r["titre"])
         conn.execute(
             """UPDATE articles SET pertinent = ?, raison_filtre = ?, theme = ?, themes = ?, zone = ?,
                acteurs = ?, acteurs_titre = ?, type_evenement = ?, classif_par = 'regles' WHERE id = ?""",

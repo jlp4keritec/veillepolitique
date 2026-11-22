@@ -1,5 +1,19 @@
 # CHANGELOG - VEILLE
 
+## [0.2.4] - 2026-11-22 - Reglages classement, 2e passe sur donnees reelles
+
+### Modifie
+- A. F02 : titre court fait uniquement de noms propres ("Marine Le Pen") = page sujet, ecarte.
+- B. F02 : un theme trouve seulement dans le resume exige 2 mots-cles differents
+  (parametre theme_resume_mots_min) ; 1 mot-cle dans le titre suffit.
+- C. Theme Pouvoir d'achat : + "vie chere", "cout de la vie" (si le theme n'a pas ete modifie par J).
+- D. F03 : dans un nom compose, seul le dernier mot compte comme nom propre ; les prenoms
+  ("Marine", "Jean-Luc") ne comptent pas comme mots communs.
+- E. F03 : les nombres (2027, 49.3) ne comptent pas pour regrouper.
+
+### Ajoute
+- 6 tests sur les vrais titres (Darmanin / Tondelier, Gelinotte, vie chere) : 67 tests.
+
 ## [0.2.2] - 2026-11-22 - Reglage du classement sur donnees reelles
 
 ### Modifie (constats du 1er test reel)

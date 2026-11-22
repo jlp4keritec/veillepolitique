@@ -23,21 +23,62 @@ NON_NOMS = {"le", "la", "les", "un", "une", "des", "du", "de", "en", "au", "aux"
             "avant", "video", "direct", "info", "infos", "exclusif", "replay", "interview", "edito", "tribune"}
 
 
+PARTICULES = {"de", "du", "d", "le", "la", "von", "van", "ben", "el"}
+PONCTUATION_FIN = {":", ".", "!", "?", "«", "»", '"'}
+
+
 def noms_propres(titre: str) -> set[str]:
-    """Mots a majuscule hors debut de phrase (ex. Moutouh, Beauvau), sigles (RN, LFI), normalises."""
-    noms = set()
+    return _analyse_noms(titre)[0]
+
+
+def prenoms(titre: str) -> set[str]:
+    """Mots d'un nom compose sauf le dernier ("Marine", "Jean-Luc") : partages, peu distinctifs."""
+    return _analyse_noms(titre)[1]
+
+
+def _analyse_noms(titre: str) -> tuple[set[str], set[str]]:
+    """Noms propres distinctifs d'un titre, normalises.
+
+    - Une suite de mots a majuscule est UN nom : seul son dernier mot compte
+      ("Marine Tondelier" -> tondelier, "Marine Le Pen" -> pen), car les prenoms sont partages.
+    - Un mot a majuscule seul en debut de phrase est ignore (majuscule grammaticale).
+    - Les sigles (RN, LFI) comptent.
+    """
+    noms: set[str] = set()
+    autres: set[str] = set()
+    jetons = re.findall(r"[\w’'-]+|[:.!?«»\",;()]", titre)
+    etat = {"suite": [], "au_debut": False}
+
+    def fermer():
+        suite = etat["suite"]
+        if suite and not (etat["au_debut"] and len(suite) == 1):
+            n = normaliser(suite[-1])
+            if len(n) >= 3 and n not in NON_NOMS:
+                noms.add(n)
+            autres.update(normaliser(x) for x in suite[:-1])
+        etat["suite"] = []
+
     debut = True
-    for mot in re.findall(r"[\w’'-]+|[:.!?«»\"]", titre):
-        if mot in (":", ".", "!", "?", "«", "»", '"'):
-            debut = True
+    for mot in jetons:
+        if not re.match(r"\w", mot):
+            fermer()
+            debut = mot in PONCTUATION_FIN
             continue
         brut = re.split(r"[’']", mot)[-1]  # l'Elysee -> Elysee
-        n = normaliser(brut)
-        if (not debut and brut[:1].isupper() and len(n) >= 3 and n not in NON_NOMS) or \
-                (brut.isupper() and len(brut) >= 2 and n not in NON_NOMS):
-            noms.add(n)
+        if brut.isupper() and len(brut) >= 2 and normaliser(brut) not in NON_NOMS:  # sigle
+            fermer()
+            noms.add(normaliser(brut))
+        elif brut[:1].isupper():
+            if not etat["suite"]:
+                etat["au_debut"] = debut
+            etat["suite"].append(brut)
+        elif etat["suite"] and normaliser(brut) in PARTICULES and not (etat["au_debut"] and len(etat["suite"]) == 1):
+            pass  # "Dominique de Villepin" : la suite continue (mais pas "Fuites de Beauvau" en debut de titre)
+        else:
+            fermer()
         debut = False
-    return noms
+    fermer()
+    return noms, autres
 
 
 def frequences_noms(conn: sqlite3.Connection, centre, fenetre) -> Counter:
@@ -48,8 +89,13 @@ def frequences_noms(conn: sqlite3.Connection, centre, fenetre) -> Counter:
     return c
 
 
+def _mots(titre_norm: str) -> list[str]:
+    # Les nombres (2027, 49.3...) ne distinguent pas un evenement
+    return [m for m in mots_significatifs(titre_norm) if not m.replace(".", "").replace("-", "").isdigit()]
+
+
 def similarite(titre_a: str, titre_b: str) -> tuple[float, int]:
-    a, b = mots_significatifs(titre_a), mots_significatifs(titre_b)
+    a, b = _mots(titre_a), _mots(titre_b)
     communs = len(set(a) & set(b))
     # token_sort : compare tous les mots (token_set rapprochait trop "Macron sur X" et "Macron sur Y")
     return fuzz.token_sort_ratio(" ".join(a), " ".join(b)), communs
@@ -65,7 +111,11 @@ def meme_evenement_rare(titre_a: str, titre_b: str, freq: Counter, p: dict) -> t
     rares = {n for n in noms_propres(titre_a) & noms_propres(titre_b) if freq.get(n, 0) <= p["mot_rare_frequence_max"]}
     if not rares:
         return False, 0.0
-    sim, communs = similarite(normaliser(titre_a), normaliser(titre_b))
+    sim, _ = similarite(normaliser(titre_a), normaliser(titre_b))
+    exclus = prenoms(titre_a) | prenoms(titre_b)
+    partages = (set(_mots(normaliser(titre_a))) & set(_mots(normaliser(titre_b)))) | \
+        (noms_propres(titre_a) & noms_propres(titre_b))  # inclut les sigles courts (RN)
+    communs = len(partages - exclus)
     return sim >= p["mot_rare_similarite_min"] and communs >= p["mot_rare_mots_communs_min"], sim
 
 

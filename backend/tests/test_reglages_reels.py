@@ -123,3 +123,63 @@ def test_reclasser_ne_touche_pas_les_alertes(base, conn):
     r = reclasser(base, 3)
     assert r["articles"] == 0
     assert conn.execute("SELECT COUNT(*) FROM articles WHERE evenement_id = ?", (evt,)).fetchone()[0] == 2
+
+
+# ------------------------------------------------------------------ v0.2.4 (A a E)
+DARMANIN = "Présidentielle 2027 : face à Marine Le Pen, Jean-Luc Mélenchon gagnera l’élection, assure Darmanin"
+TONDELIER = [
+    "Présidentielle : Marine Tondelier \"prête à travailler à une coalition\" autour de Jean-Luc Mélenchon",
+    "Présidentielle 2027 : Tondelier penche vers Mélenchon, mais pour quelle union ?",
+    "Présidentielle 2027 : le camp Glucksmann fustige Tondelier après sa main tendue à Mélenchon",
+    "Présidentielle 2027 : l’alliance avec Marine Tondelier «devrait pouvoir se faire», estime Mélenchon",
+    "Présidentielle 2027 : primaire de la droite et du centre, Marine Tondelier tend la main à LFI",
+    "Yannick Jadot claque la porte des Écologistes suite au rapprochement entre Marine Tondelier et LFI",
+    "Tondelier se tourne vers Mélenchon : l’occasion pour Raphaël Glucksmann de réunir les «écolos-réalos»",
+]
+
+
+def test_a_page_sujet_noms_propres(conn):
+    p, th = tous(conn), themes_actifs(conn)
+    for titre in ("Marine Le Pen", "Dominique de Villepin"):
+        assert not classer(normaliser(titre), "", "national", p, th, titre).pertinent
+    titre = "Le Sénat adopte le budget"
+    assert classer(normaliser(titre), "", "national", p, th, titre).pertinent
+
+
+def test_b_theme_du_resume_exige_deux_mots(conn):
+    p, th = tous(conn), themes_actifs(conn)
+    titre = "\"Ce lieu faisait vivre le territoire\" : perché dans le massif de Belledonne, le célèbre restaurant va fermer"
+    c = classer(normaliser(titre), normaliser("Une procédure devant le tribunal de commerce."), "regional", p, th, titre)
+    assert "Justice" not in c.themes and not c.pertinent
+    c = classer(normaliser(titre), normaliser("Le tribunal a rendu son jugement, le procès a duré deux jours."),
+                "regional", p, th, titre)
+    assert "Justice" in c.themes  # 2 mots differents : theme retenu
+
+
+def test_c_vie_chere(conn):
+    p, th = tous(conn), themes_actifs(conn)
+    titre = "Acte VI contre la vie chère à Lyon : plusieurs cortèges mobiles, des manifestants très éparpillés"
+    assert classer(normaliser(titre), "", "regional", p, th, titre).theme == "Pouvoir d'achat"
+
+
+def test_d_e_darmanin_separe_de_tondelier(conn):
+    _charger(conn, [[(DARMANIN, "")], [(t, "") for t in TONDELIER[:4]], [(t, "") for t in TONDELIER[4:]]])
+    evt_darmanin = conn.execute("SELECT evenement_id FROM articles WHERE titre = ?", (DARMANIN,)).fetchone()[0]
+    assert conn.execute("SELECT nb_articles FROM evenements WHERE id = ?", (evt_darmanin,)).fetchone()[0] == 1
+    evts_tondelier = {r[0] for r in conn.execute(
+        "SELECT evenement_id FROM articles WHERE titre LIKE '%Tondelier%' AND pertinent = 1")}
+    assert evt_darmanin not in evts_tondelier
+    assert len(evts_tondelier) <= 2  # dossier Tondelier : 1, au plus 2 evenements
+
+
+def test_d_prenoms_et_noms():
+    from app.regroupement import noms_propres, prenoms
+    assert noms_propres("face à Marine Le Pen, Jean-Luc Mélenchon gagnera") == {"pen", "melenchon"}
+    assert "marine" in prenoms("autour de Marine Tondelier et Jean-Luc Mélenchon")
+    assert noms_propres("Fuites au ministère : Hugues Moutouh soupçonné, le RN visé") >= {"moutouh", "rn"}
+
+
+def test_e_nombres_ignores():
+    from app.regroupement import similarite
+    _, communs = similarite(normaliser("Présidentielle 2027 : la gauche"), normaliser("Présidentielle 2027 : la droite"))
+    assert communs == 1  # "presidentielle" seulement, pas "2027"

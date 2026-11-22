@@ -20,6 +20,7 @@ DEFAUTS: dict[str, tuple[Any, str]] = {
     # --- Filtrage (F02) ---
     "mots_exclus": ([], "Mots-cles : un article qui les contient est ecarte"),
     "titre_mots_min": (3, "Titre plus court = page sujet d'un media, ecartee"),
+    "theme_resume_mots_min": (2, "Mots-cles differents requis pour un theme trouve seulement dans le resume"),
     "type_depuis_resume": (False, "Deduire le type d'evenement aussi depuis le resume (sinon titre seul)"),
     "zone_regionale_mots": ([
         "lyon", "lyonnais", "lyonnaise", "villeurbanne", "metropole de lyon", "grand lyon",
@@ -122,7 +123,8 @@ THEMES_DEFAUT: dict[str, list[str]] = {
                   "regionales", "europeennes", "sondage", "candidat", "candidate", "scrutin"],
     "Économie": ["economie", "croissance", "inflation", "entreprises", "industrie", "deficit", "dette"],
     "Fiscalité": ["impot", "impots", "fiscalite", "taxe", "tva", "loi de finances", "budget"],
-    "Pouvoir d'achat": ["pouvoir d achat", "prix", "salaires", "smic", "carburant"],
+    "Pouvoir d'achat": ["pouvoir d achat", "prix", "salaires", "smic", "carburant", "vie chere",
+                        "cout de la vie"],
     "Emploi": ["emploi", "chomage", "travail", "france travail"],
     "Immigration": ["immigration", "migrants", "asile", "titre de sejour", "frontieres"],
     "Sécurité": ["securite", "police", "gendarmerie", "delinquance", "violences", "attentat"],
@@ -148,6 +150,7 @@ THEMES_DEFAUT: dict[str, list[str]] = {
 
 # Mises a jour de themes par defaut : appliquees SEULEMENT si J n'a pas modifie le theme.
 THEMES_MAJ: dict[str, list[list[str]]] = {
+    "Pouvoir d'achat": [["pouvoir d achat", "prix", "salaires", "smic", "carburant"]],
     "International": [["international", "diplomatie", "ukraine", "russie", "etats-unis", "chine",
                        "israel", "gaza", "otan", "onu"]],
 }
