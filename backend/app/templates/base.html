@@ -4,49 +4,125 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#070b1a">
 <title>{{ titre_page }} · VEILLE</title>
 <style>
-:root{--bg:#f5f7fa;--carte:#fff;--txt:#1b2430;--doux:#5b6878;--ligne:#dde3ea;--acc:#1f5fbf;--acc2:#e8f0fc;
---crit:#c62828;--tres:#e8590c;--imp:#b58100;--info:#2b7a4b;--faible:#7b8794}
-@media (prefers-color-scheme:dark){:root{--bg:#10151c;--carte:#18202a;--txt:#e3e8ee;--doux:#93a1b2;--ligne:#2a3542;
---acc:#6ea4ff;--acc2:#1c2b40;--crit:#ff6b6b;--tres:#ff9a4d;--imp:#e0b43c;--info:#5fc48a;--faible:#8a97a6}}
+/* Design "Glassy Dashboard" (artefact de J), version compacte, polices de l'appareil */
+:root{--fond:#070b1a;--verre:rgba(255,255,255,.07);--verre2:rgba(255,255,255,.12);--bord:rgba(255,255,255,.14);
+--txt:#eef1ff;--doux:rgba(238,241,255,.68);--acc:#818cf8;--lien:#a5b4fc;--cyan:#67e8f9;--rose:#fda4af;--vert:#6ee7b7;
+--jaune:#fde68a;--orange:#fdba74;--flou:22px;
+--titre:"Space Grotesk",ui-rounded,"SF Pro Rounded",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+--texte:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,system-ui,sans-serif}
 *{box-sizing:border-box}
-body{margin:0;font:13px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--txt)}
-a{color:var(--acc);text-decoration:none}a:hover{text-decoration:underline}
-header{display:flex;flex-wrap:wrap;align-items:center;gap:4px 12px;padding:6px 10px;background:var(--carte);
-border-bottom:1px solid var(--ligne);position:sticky;top:0;z-index:2}
-header b{font-size:14px;letter-spacing:.5px}header nav{display:flex;gap:10px;flex-wrap:wrap}
-header nav a{color:var(--doux)}header nav a.on{color:var(--acc);font-weight:600}
-main{max-width:980px;margin:0 auto;padding:8px}
-.carte{background:var(--carte);border:1px solid var(--ligne);border-radius:6px;padding:8px 10px;margin:0 0 8px}
-h1{font-size:16px;margin:2px 0 6px}h2{font-size:13px;margin:0 0 4px;color:var(--doux);text-transform:uppercase;letter-spacing:.4px}
-table{width:100%;border-collapse:collapse}td,th{padding:3px 4px;border-bottom:1px solid var(--ligne);vertical-align:top;text-align:left}
-th{font-weight:600;color:var(--doux);font-size:12px}
-.doux{color:var(--doux);font-size:12px}.ligne{display:flex;gap:6px;align-items:baseline;flex-wrap:wrap}
-.score{display:inline-block;min-width:30px;text-align:center;font-weight:700;border-radius:4px;padding:0 4px;color:#fff;font-size:12px}
-.crit{background:var(--crit)}.tres{background:var(--tres)}.imp{background:var(--imp)}.info{background:var(--info)}.faible{background:var(--faible)}
-.tag{display:inline-block;background:var(--acc2);color:var(--acc);border-radius:3px;padding:0 5px;font-size:11px}
-.texte{line-height:1.5;font-size:14px;word-wrap:break-word}
-.grille{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:6px}
-form.filtres{display:flex;flex-wrap:wrap;gap:4px}form.filtres input,form.filtres select,button{font:inherit;padding:3px 6px;
-border:1px solid var(--ligne);border-radius:4px;background:var(--carte);color:var(--txt)}
-button{background:var(--acc);color:#fff;border:0;cursor:pointer}
-.pied{text-align:center;color:var(--doux);font-size:11px;padding:8px}
+html,body{margin:0;min-height:100%;background:var(--fond)}
+body{font:13px/1.4 var(--texte);color:var(--txt);position:relative;overflow-x:hidden}
+.halo{position:fixed;border-radius:50%;pointer-events:none;z-index:0}
+.h1{top:-160px;left:-120px;width:560px;height:560px;background:radial-gradient(circle,var(--acc) 0%,rgba(99,102,241,0) 70%);opacity:.7}
+.h2{top:120px;right:-160px;width:620px;height:620px;background:radial-gradient(circle,#22d3ee 0%,rgba(34,211,238,0) 70%);opacity:.4}
+.h3{bottom:-220px;left:32%;width:640px;height:640px;background:radial-gradient(circle,#d946ef 0%,rgba(217,70,239,0) 70%);opacity:.35}
+a{color:var(--lien);text-decoration:none}a:hover{color:#c7d2fe;text-decoration:underline}
+.cadre{position:relative;z-index:1;display:flex;gap:10px;padding:10px;min-height:100vh;align-items:flex-start}
+.verre{background:var(--verre);border:1px solid var(--bord);border-radius:14px;
+backdrop-filter:blur(var(--flou)) saturate(150%);-webkit-backdrop-filter:blur(var(--flou)) saturate(150%)}
+nav.cote{flex:0 0 190px;position:sticky;top:10px;display:flex;flex-direction:column;gap:3px;padding:10px 8px;
+box-shadow:inset 0 1px 0 rgba(255,255,255,.12)}
+.marque{display:flex;align-items:center;gap:8px;padding:2px 6px 10px;font:700 15px var(--titre);letter-spacing:-.01em}
+.logo{width:26px;height:26px;border-radius:8px;background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.3);
+display:flex;align-items:center;justify-content:center}
+nav.cote a.lien{display:flex;align-items:center;gap:8px;min-height:32px;padding:0 8px;border-radius:9px;color:rgba(238,241,255,.78);
+border:1px solid transparent}
+nav.cote a.lien:hover{text-decoration:none;background:rgba(255,255,255,.06)}
+nav.cote a.on{color:#fff;font-weight:600;background:rgba(255,255,255,.14);border-color:rgba(255,255,255,.18)}
+nav.cote svg{flex:0 0 16px}
+.espace{flex:1 1 auto;min-height:10px}
+.encart{padding:9px;border-radius:11px;background:rgba(255,255,255,.08);border:1px solid var(--bord);display:flex;flex-direction:column;gap:6px}
+.jauge{height:6px;border-radius:3px;background:rgba(255,255,255,.14);overflow:hidden}.jauge>div{height:6px;border-radius:3px;background:var(--acc)}
+main{flex:1 1 560px;min-width:0;display:flex;flex-direction:column;gap:10px}
+header.haut{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:8px 10px}
+header.haut h1{margin:0;font:600 18px var(--titre);letter-spacing:-.01em}
+.cherche{display:flex;align-items:center;gap:6px;height:32px;padding:0 10px;border-radius:9px;background:rgba(255,255,255,.08);
+border:1px solid rgba(255,255,255,.16);flex:0 1 260px}
+.cherche input{flex:1;min-width:0;background:transparent;border:0;outline:none;color:var(--txt);font:inherit}
+input::placeholder{color:rgba(226,232,255,.55)}
+.carte{padding:10px}
+h2{margin:0 0 6px;font:600 14px var(--titre)}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.kpi{padding:10px;display:flex;flex-direction:column;gap:3px}
+.kpi .lib{color:var(--doux);font-size:12px}.kpi .val{font:600 22px var(--titre)}
+.kpi svg{width:100%;height:24px}
+.rangee{display:flex;flex-wrap:wrap;gap:10px}.rangee>*{flex:1 1 300px;min-width:0}
+table{width:100%;border-collapse:collapse}
+td,th{padding:6px;vertical-align:top;text-align:left}
+tr+tr td,tbody tr td{border-top:1px solid rgba(255,255,255,.08)}
+th{font-weight:500;color:var(--doux);font-size:12px}
+.doux{color:var(--doux);font-size:12px}
+.ligne{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.pilule{display:inline-block;padding:1px 8px;border-radius:999px;font-size:11px;white-space:nowrap;border:1px solid}
+.score{font-weight:700;min-width:34px;text-align:center}
+.p-crit{background:rgba(253,164,175,.18);border-color:rgba(253,164,175,.5);color:#fecdd3}
+.p-tres{background:rgba(253,186,116,.16);border-color:rgba(253,186,116,.45);color:#fed7aa}
+.p-imp{background:rgba(253,230,138,.14);border-color:rgba(253,230,138,.4);color:#fde68a}
+.p-info{background:rgba(110,231,183,.14);border-color:rgba(110,231,183,.4);color:#a7f3d0}
+.p-faible{background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.2);color:var(--doux)}
+.p-cyan{background:rgba(103,232,249,.14);border-color:rgba(103,232,249,.4);color:#a5f3fc}
+.p-acc{background:rgba(129,140,248,.16);border-color:rgba(129,140,248,.45);color:#c7d2fe}
+.texte{line-height:1.55;font-size:14px;word-wrap:break-word}
+.texte b{font-family:var(--titre)}
+.barres{display:flex;flex-direction:column;gap:8px}
+.barre .ent{display:flex;gap:8px}.barre .ent span:first-child{margin-right:auto}
+form.filtres{display:flex;flex-wrap:wrap;gap:6px}
+form.filtres input,form.filtres select,.bouton{font:inherit;height:32px;padding:0 10px;border-radius:9px;
+background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.16);color:var(--txt)}
+form.filtres select option{background:#141a33}
+.bouton,button{background:#fff;color:#0b1020;border:0;font-weight:600;cursor:pointer;border-radius:9px;height:32px;padding:0 12px;font:inherit}
+input[type=date]{color-scheme:dark}
+.court{display:none}
+.pied{position:relative;z-index:1;text-align:center;color:var(--doux);font-size:11px;padding:0 0 10px}
+@media (max-width:760px){
+ .cadre{flex-direction:column;padding:8px;gap:8px}
+ nav.cote{position:static;flex:none;width:100%;flex-direction:row;flex-wrap:wrap;align-items:center;padding:6px}
+ .marque{padding:0 4px;font-size:0;gap:0}.espace,.encart{display:none}
+ nav.cote{gap:2px}
+ .long{display:none}.court{display:inline}
+ nav.cote a.lien{padding:0 7px;gap:6px}
+ nav.cote a.lien{min-height:30px}
+ .cherche{flex:1 1 100%}
+ .halo{opacity:.25}
+}
 </style>
 </head>
 <body>
-<header>
-<b>VEILLE</b>
-<nav>
-<a href="/" {% if request.url.path == '/' %}class="on"{% endif %}>Accueil</a>
-<a href="/archives" {% if request.url.path.startswith('/archives') %}class="on"{% endif %}>Archives</a>
-<a href="/recherche" {% if request.url.path.startswith('/recherche') %}class="on"{% endif %}>Recherche</a>
-{% if protege %}<a href="/deconnexion">Déconnexion</a>{% endif %}
+<div class="halo h1"></div><div class="halo h2"></div><div class="halo h3"></div>
+<div class="cadre">
+<nav class="cote verre" aria-label="Navigation principale">
+ <div class="marque"><div class="logo" aria-hidden="true"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/><path d="M8 11h6M11 8v6"/></svg></div>VEILLE</div>
+ {% set chemin = request.url.path %}
+ <a class="lien {% if chemin == '/' %}on{% endif %}" href="/"><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg><span class="long">Vue d'ensemble</span><span class="court">Accueil</span></a>
+ <a class="lien {% if chemin.startswith('/archives') or chemin.startswith('/lecture') %}on{% endif %}" href="/archives"><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8v13H3V8"/><path d="M1 3h22v5H1z"/><path d="M10 12h4"/></svg>Archives</a>
+ <a class="lien {% if chemin.startswith('/recherche') %}on{% endif %}" href="/recherche"><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>Recherche</a>
+ {% if protege %}<a class="lien" href="/deconnexion"><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>Déconnexion</a>{% endif %}
+ <div class="espace"></div>
+ {% if budget %}<div class="encart">
+  <div style="font-weight:600">Budget IA</div>
+  <div class="jauge"><div style="width:{{ [budget.pct, 100] | min }}%"></div></div>
+  <div class="doux">{{ '%.2f' | format(budget.depense_eur) }} € sur {{ '%.0f' | format(budget.budget_eur) }} € ({{ budget.pct }} %)</div>
+ </div>{% endif %}
 </nav>
-</header>
 <main>
-{% block contenu %}{% endblock %}
+ <header class="haut verre">
+  <div style="display:flex;flex-direction:column;margin-right:auto">
+   <h1>{{ entete or ('Bonjour, ' ~ p.nom_affiche) }}</h1>
+   <span class="doux">{{ aujourdhui }}</span>
+  </div>
+  <form class="cherche" method="get" action="/recherche" role="search">
+   <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(238,241,255,.75)" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+   <label for="q" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)">Rechercher</label>
+   <input id="q" name="q" type="search" placeholder="Rechercher dans l'historique…" value="{{ request.query_params.get('q', '') }}">
+  </form>
+ </header>
+ {% block contenu %}{% endblock %}
 </main>
+</div>
 <div class="pied">VEILLE {{ version }} · lecture seule · chaque information porte sa source</div>
 </body>
 </html>

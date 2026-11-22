@@ -1,33 +1,40 @@
 {% extends "base.html" %}
 {% block contenu %}
-<div class="carte">
-<div class="ligne"><span class="score {{ score_classe(e.score) }}">{{ e.score }}</span><span class="doux">{{ niveau(e.score) }}</span></div>
-<h1>{{ e.titre }}</h1>
+<section class="carte verre">
+<div class="ligne"><span class="pilule score p-{{ score_classe(e.score) }}">{{ e.score }}/100</span><span class="doux">{{ niveau(e.score) }}</span>
+<span class="pilule {{ verif_classe(e.verification) }}">{{ e.verification }}</span>
+<span class="pilule p-cyan">{{ e.tendance }}</span></div>
+<h1 style="font:600 17px var(--titre);margin:8px 0 4px">{{ e.titre }}</h1>
 <div class="doux">{{ e.nb_articles }} article(s) · {{ e.nb_sources }} source(s) · du {{ e.premier_article_le | paris }} au {{ e.dernier_article_le | paris }}</div>
-<div class="ligne" style="margin-top:4px">{% for t in themes %}<span class="tag">{{ t }}</span>{% endfor %}
-<span class="tag">{{ 'Lyon/AURA' if e.zone == 'regional' else 'national' }}</span>{% if e.type_evenement %}<span class="tag">{{ e.type_evenement }}</span>{% endif %}</div>
-{% if acteurs %}<div class="doux" style="margin-top:4px">Acteurs : {{ acteurs | join(', ') }}</div>{% endif %}
-{% if e.resume_ia %}<p class="texte">{{ e.resume_ia }}<br><span class="doux">(résumé proposé par l'IA, à vérifier dans les sources)</span></p>{% endif %}
+<div class="ligne" style="margin-top:6px">{% for t in themes %}<span class="pilule p-acc">{{ t }}</span>{% endfor %}
+<span class="pilule p-faible">{{ 'Lyon/AURA' if e.zone == 'regional' else 'national' }}</span>{% if e.type_evenement %}<span class="pilule p-faible">{{ e.type_evenement }}</span>{% endif %}</div>
+{% if acteurs %}<div class="doux" style="margin-top:6px">Acteurs : {{ acteurs | join(', ') }}</div>{% endif %}
+{% if e.resume_ia %}<p class="texte" style="margin:8px 0 0">{{ e.resume_ia }}<br><span class="doux">(résumé proposé par l'IA, à vérifier dans les sources)</span></p>{% endif %}
+</section>
+
+<div class="rangee">
+<section class="carte verre" aria-label="Score détaillé">
+<h2>Pourquoi ce score ({{ e.score }}/100)</h2>
+<div class="barres">{% for cle, nom in CRITERES.items() %}{% set d = details.get(cle) %}{% if d %}
+<div class="barre"><div class="ent"><span>{{ nom }}</span><span style="font-weight:600">{{ d.points }}/{{ p.poids_score[cle] }}</span></div>
+<div class="jauge"><div style="width:{{ (100 * d.points / (p.poids_score[cle] or 1)) | round }}%;background:{{ ['#ffffff', '#67e8f9', '#818cf8', '#f0abfc', '#6ee7b7', '#fde68a'][loop.index0 % 6] }}"></div></div>
+<div class="doux" style="margin-top:2px">{{ d.raison }}</div></div>
+{% endif %}{% endfor %}</div>
+</section>
+<section class="carte verre" aria-label="Vérification et tendance">
+<h2>Vérification</h2><div><b>{{ e.verification }}</b></div><div class="doux">{{ verif.raison }}</div>
+<h2 style="margin-top:12px">Tendance</h2><div><b>{{ e.tendance }}</b></div><div class="doux">{{ tendance.regle }}</div>
+<table style="margin-top:6px"><tr><th>Fenêtre</th><th>Actuelle</th><th>Précédente</th></tr>
+{% for k, v in tendance.items() if k != 'regle' %}<tr><td>{{ k | fenetre }}</td><td>{{ v.courant }}</td><td>{{ v.precedent }}</td></tr>{% endfor %}</table>
+{% if notifs %}<h2 style="margin-top:12px">Messages envoyés</h2>
+{% for x in notifs %}<div><a href="/lecture/{{ x.id }}">{{ TYPES.get(x.type, x.type) }} du {{ x.envoye_le | paris }}</a></div>{% endfor %}{% endif %}
+</section>
 </div>
 
-<div class="grille">
-<div class="carte"><h2>Vérification</h2><b>{{ e.verification }}</b><div class="doux">{{ verif.raison }}</div></div>
-<div class="carte"><h2>Tendance</h2><b>{{ e.tendance }}</b><div class="doux">{{ tendance.regle }}</div></div>
-</div>
-
-<div class="carte"><h2>Pourquoi ce score ({{ e.score }}/100)</h2>
-<table>{% for cle, nom in CRITERES.items() %}{% set d = details.get(cle) %}{% if d %}
-<tr><td style="white-space:nowrap">{{ nom }}</td><td style="text-align:right"><b>{{ d.points }}</b>/{{ p.poids_score[cle] }}</td><td class="doux">{{ d.raison }}</td></tr>
-{% endif %}{% endfor %}</table>
-</div>
-
-<div class="carte"><h2>Chronologie et sources</h2>
+<section class="carte verre" aria-label="Chronologie">
+<h2>Chronologie et sources</h2>
 <table>{% for a in chrono %}
-<tr><td class="doux" style="white-space:nowrap">{{ a.publie_le | paris }}</td><td><b>{{ a.source }}</b> · <a href="{{ a.url }}" target="_blank" rel="noopener noreferrer">{{ a.titre }}</a></td></tr>
+<tr><td class="doux" style="white-space:nowrap;width:80px">{{ a.publie_le | paris }}</td><td><b>{{ a.source }}</b> · <a href="{{ a.url }}" target="_blank" rel="noopener noreferrer">{{ a.titre }}</a></td></tr>
 {% endfor %}</table>
-</div>
-
-{% if notifs %}<div class="carte"><h2>Messages envoyés</h2>
-{% for x in notifs %}<div><a href="/lecture/{{ x.id }}">{{ TYPES.get(x.type, x.type) }} du {{ x.envoye_le | paris }}</a></div>{% endfor %}
-</div>{% endif %}
+</section>
 {% endblock %}

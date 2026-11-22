@@ -1,29 +1,28 @@
 {% extends "base.html" %}
 {% block contenu %}
-<div class="carte">
+<section class="carte verre">
 <form class="filtres" method="get">
-<select name="type" onchange="this.form.submit()">
+<select name="type" onchange="this.form.submit()" aria-label="Type">
 <option value="">Tout</option>
 {% for t in ['briefing', 'synthese', 'point', 'alerte'] %}<option value="{{ t }}" {% if t == type_choisi %}selected{% endif %}>{{ TYPES[t] }}</option>{% endfor %}
 </select>
 <noscript><button>Filtrer</button></noscript>
-<span class="doux">{{ total }} élément(s)</span>
+<span class="doux" style="align-self:center">{{ total }} élément(s)</span>
 </form>
-</div>
-<div class="carte">
+</section>
+<section class="carte verre">
 {% if lignes %}<table>
 {% for r, debut in lignes %}
-<tr><td class="doux" style="white-space:nowrap">{{ r.envoye_le | paris }}</td>
-<td><span class="tag">{{ TYPES.get(r.type, r.type) }}</span>
-{% if r.type == 'alerte' and r.score_envoye %}<span class="score {{ score_classe(r.score_envoye) }}">{{ r.score_envoye }}</span>{% endif %}
+<tr><td class="doux" style="white-space:nowrap;width:80px">{{ r.envoye_le | paris }}</td>
+<td><div class="ligne"><span class="pilule {{ 'p-crit' if r.type == 'alerte' else 'p-acc' if r.type in ('briefing', 'synthese') else 'p-cyan' }}">{{ TYPES.get(r.type, r.type) }}{% if r.type == 'alerte' and r.score_envoye %} · {{ r.score_envoye }}{% endif %}</span>
 <a href="/lecture/{{ r.id }}">{{ debut }}</a>
-{% if r.statut != 'envoye' %}<span class="doux">({{ r.statut }})</span>{% endif %}</td></tr>
+{% if r.statut != 'envoye' %}<span class="doux">({{ r.statut }})</span>{% endif %}</div></td></tr>
 {% endfor %}
 </table>{% else %}<div class="doux">Rien pour l'instant.</div>{% endif %}
-</div>
-{% if pages > 1 %}<div class="carte ligne">
+</section>
+{% if pages > 1 %}<section class="carte verre ligne">
 {% if page_n > 1 %}<a href="?type={{ type_choisi }}&page_n={{ page_n - 1 }}">← plus récents</a>{% endif %}
 <span class="doux">page {{ page_n }} / {{ pages }}</span>
 {% if page_n < pages %}<a href="?type={{ type_choisi }}&page_n={{ page_n + 1 }}">plus anciens →</a>{% endif %}
-</div>{% endif %}
+</section>{% endif %}
 {% endblock %}

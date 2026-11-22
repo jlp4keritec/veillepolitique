@@ -22,6 +22,7 @@ from app import __version__, auth, parametres
 from app.analyse import niveau
 from app.config import get_settings
 from app.db import get_etat, session
+from app.ia import etat_budget
 from app.recherche import chercher_articles, chronologie
 from app.util import from_iso, to_iso, utcnow
 
@@ -69,13 +70,59 @@ def _paris(iso: str | None, fmt: str = "%d/%m %H:%M") -> str:
     return from_iso(iso).astimezone(PARIS).strftime(fmt) if iso else "—"
 
 
+JOURS = ["lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi", "dimanche"]
+MOIS = ["janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août", "septembre", "octobre",
+        "novembre", "décembre"]
+VERIF_CLASSES = {"confirmé par source primaire": "p-info", "corroboré par plusieurs sources": "p-info",
+                 "une seule source disponible": "p-imp", "déclaration rapportée": "p-cyan",
+                 "à confirmer": "p-crit", "contradictoire": "p-crit", "non vérifié": "p-faible"}
+
+
+def _aujourdhui() -> str:
+    d = utcnow().astimezone(PARIS)
+    return f"{JOURS[d.weekday()].capitalize()} {d.day} {MOIS[d.month - 1]} {d.year} · {d:%H:%M}"
+
+
+def courbe(valeurs: list[int], couleur: str) -> Markup:
+    """Mini-courbe SVG (donnees mesurees, ex. articles par heure sur 24 h)."""
+    if not valeurs or max(valeurs) == 0:
+        return Markup("")
+    haut, n = max(valeurs), len(valeurs)
+    pts = " ".join(f"{round(i * 120 / max(n - 1, 1), 1)},{round(24 - 20 * v / haut, 1)}" for i, v in enumerate(valeurs))
+    return Markup(f'<svg aria-hidden="true" viewBox="0 0 120 26" preserveAspectRatio="none"><polyline points="{pts}" '
+                  f'fill="none" stroke="{couleur}" stroke-width="2" vector-effect="non-scaling-stroke"/></svg>')
+
+
+def par_heure(conn, table: str, colonne: str, now: datetime, heures: int = 24) -> list[int]:
+    debut = now - timedelta(hours=heures)
+    comptes = [0] * heures
+    for (d,) in conn.execute(f"SELECT {colonne} FROM {table} WHERE {colonne} >= ?", (to_iso(debut),)):
+        i = int((from_iso(d) - debut).total_seconds() // 3600)
+        if 0 <= i < heures:
+            comptes[i] += 1
+    return comptes
+
+
 def _classe_score(score: int, p: dict) -> str:
     return ("crit" if score >= p["seuil_critique"] else "tres" if score >= p["seuil_important"]
             else "imp" if score >= 50 else "info" if score >= 30 else "faible")
 
 
 env.filters["paris"] = _paris
-env.filters["jour"] = lambda iso: _paris(iso, "%a %d/%m/%Y").capitalize()
+def _jour(iso: str | None) -> str:
+    if not iso:
+        return "—"
+    d = from_iso(iso).astimezone(PARIS)
+    return f"{JOURS[d.weekday()].capitalize()} {d:%d/%m/%Y}"
+
+
+def _fenetre(cle: str) -> str:
+    m = int(cle.replace("min", "")) if cle.replace("min", "").isdigit() else 0
+    return f"{m // 60} h" if m >= 60 and m % 60 == 0 else f"{m} min"
+
+
+env.filters["fenetre"] = _fenetre
+env.filters["jour"] = lambda iso: _jour(iso)
 env.globals.update(version=__version__, TYPES=TYPES_LISIBLES, CRITERES=CRITERES)
 
 router = APIRouter(include_in_schema=False)
@@ -84,10 +131,13 @@ router = APIRouter(include_in_schema=False)
 def page(nom: str, request: Request, **ctx) -> HTMLResponse:
     with session(get_settings().db_path) as conn:
         p = parametres.tous(conn)
+        budget = etat_budget(conn, utcnow())
     ctx.setdefault("titre_page", "VEILLE")
+    ctx.setdefault("entete", None)
     rendu = env.get_template(nom).render(
-        request=request, p=p, protege=auth.protection_active(),
-        score_classe=lambda s: _classe_score(s, p), niveau=lambda s: niveau(s, p), **ctx)
+        request=request, p=p, protege=auth.protection_active(), budget=budget, aujourdhui=_aujourdhui(),
+        score_classe=lambda s: _classe_score(s, p), niveau=lambda s: niveau(s, p),
+        verif_classe=lambda v: VERIF_CLASSES.get(v, "p-faible"), **ctx)
     return HTMLResponse(rendu, headers={"Cache-Control": "no-store", "X-Content-Type-Options": "nosniff",
                                         "Referrer-Policy": "no-referrer", "X-Frame-Options": "DENY"})
 
@@ -108,7 +158,15 @@ def accueil(request: Request):
         alertes = conn.execute("SELECT * FROM notifications WHERE type = 'alerte' AND envoye_le >= ? "
                                "ORDER BY id DESC", (to_iso(minuit),)).fetchall()
         top = _evts(conn, now - timedelta(hours=24))
+        alertes = [dict(a, apercu=_apercu(a["contenu"][:600])) for a in alertes]
+        themes_24h = [(r["theme"], r["n"]) for r in conn.execute(
+            "SELECT theme, COUNT(*) AS n FROM evenements WHERE dernier_article_le >= ? AND theme IS NOT NULL "
+            "GROUP BY theme ORDER BY n DESC LIMIT 6", (to_iso(now - timedelta(hours=24)),))]
+        courbe_articles = courbe(par_heure(conn, "articles", "collecte_le", now), "#6ee7b7")
+        courbe_evts = courbe(par_heure(conn, "evenements", "premier_article_le", now), "#67e8f9")
         etat = {
+            "evenements_24h": conn.execute("SELECT COUNT(*) FROM evenements WHERE dernier_article_le >= ?",
+                                           (to_iso(now - timedelta(hours=24)),)).fetchone()[0],
             "dernier_cycle": get_etat(conn, "dernier_cycle"),
             "sources": conn.execute("SELECT COUNT(*) FROM sources WHERE actif = 1").fetchone()[0],
             "erreurs": conn.execute("SELECT COUNT(*) FROM sources WHERE actif = 1 AND derniere_erreur IS NOT NULL").fetchone()[0],
@@ -116,7 +174,8 @@ def accueil(request: Request):
                                          (to_iso(now - timedelta(hours=24)),)).fetchone()[0],
         }
     return page("accueil.html", request, dernier=dernier, contenu=contenu_sur(dernier["contenu"]) if dernier else None,
-                alertes=alertes, top=top, etat=etat)
+                alertes=alertes, top=top, etat=etat, themes_24h=themes_24h,
+                courbe_articles=courbe_articles, courbe_evts=courbe_evts)
 
 
 def _apercu(debut: str) -> str:
@@ -140,7 +199,7 @@ def archives(request: Request, type: str = "", page_n: int = 1):
                             "substr(contenu, 1, 600) AS debut " + q + " ORDER BY id DESC LIMIT 50 OFFSET ?",
                             (*types, (page_n - 1) * 50)).fetchall()
     apercus = [(r, _apercu(r["debut"])) for r in rows]
-    return page("archives.html", request, titre_page="Archives", lignes=apercus, type_choisi=type,
+    return page("archives.html", request, titre_page="Archives", entete="Archives", lignes=apercus, type_choisi=type,
                 page_n=page_n, pages=max(1, (total + 49) // 50), total=total)
 
 
@@ -155,7 +214,8 @@ def lecture(request: Request, notif_id: int):
                             (notif_id, n["type"])).fetchone()
         suiv = conn.execute("SELECT id FROM notifications WHERE id > ? AND type = ? ORDER BY id LIMIT 1",
                             (notif_id, n["type"])).fetchone()
-    return page("lecture.html", request, titre_page=TYPES_LISIBLES.get(n["type"], n["type"]), n=n,
+    return page("lecture.html", request, titre_page=TYPES_LISIBLES.get(n["type"], n["type"]),
+                entete=TYPES_LISIBLES.get(n["type"], n["type"]), n=n,
                 contenu=contenu_sur(n["contenu"]), prec=prec, suiv=suiv)
 
 
@@ -169,7 +229,7 @@ def evenement(request: Request, evt_id: int):
         chrono = chronologie(conn, evt_id)
         notifs = conn.execute("SELECT id, type, envoye_le FROM notifications WHERE evenement_id = ? ORDER BY id",
                               (evt_id,)).fetchall()
-    return page("evenement.html", request, titre_page="Événement", e=e, chrono=chrono, notifs=notifs,
+    return page("evenement.html", request, titre_page="Événement", entete="Dossier d'information", e=e, chrono=chrono, notifs=notifs,
                 details=json.loads(e["score_details"] or "{}"), tendance=json.loads(e["tendance_details"] or "{}"),
                 verif=json.loads(e["verification_details"] or "{}"), acteurs=json.loads(e["acteurs"] or "[]"),
                 themes=json.loads(e["themes"] or "[]"))
@@ -191,7 +251,7 @@ def recherche(request: Request, q: str = "", theme: str = "", zone: str = "", du
         lance = bool(q or theme or zone or du or au)
         rows = chercher_articles(conn, q.split()[:5], _date(du), _date(au, fin=True), theme or None, None,
                                  zone if zone in ("national", "regional") else None, None, 100) if lance else []
-    return page("recherche.html", request, titre_page="Recherche", rows=rows, lance=lance, themes=themes,
+    return page("recherche.html", request, titre_page="Recherche", entete="Recherche dans l'historique", rows=rows, lance=lance, themes=themes,
                 f={"q": q, "theme": theme, "zone": zone, "du": du, "au": au})
 
 
@@ -200,7 +260,8 @@ def recherche(request: Request, q: str = "", theme: str = "", zone: str = "", du
 def connexion_page(request: Request, suite: str = "/", erreur: str = ""):
     if not auth.protection_active():
         return RedirectResponse("/", status_code=303)
-    return page("connexion.html", request, titre_page="Connexion", suite=_suite_sure(suite), erreur=erreur)
+    return HTMLResponse(env.get_template("connexion.html").render(suite=_suite_sure(suite), erreur=erreur),
+                        headers={"Cache-Control": "no-store", "X-Frame-Options": "DENY", "Referrer-Policy": "no-referrer"})
 
 
 def _suite_sure(suite: str) -> str:

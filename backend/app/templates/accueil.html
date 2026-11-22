@@ -1,27 +1,37 @@
 {% extends "base.html" %}
 {% block contenu %}
-<div class="grille">
-<div class="carte"><h2>Collecte</h2>{{ 'active' if p.collecte_active else 'EN PAUSE' }}<div class="doux">dernier cycle {{ etat.dernier_cycle | paris }}</div></div>
-<div class="carte"><h2>Sources</h2>{{ etat.sources }} actives<div class="doux">{{ etat.erreurs }} en erreur</div></div>
-<div class="carte"><h2>Articles 24 h</h2>{{ etat.articles_24h }}</div>
-<div class="carte"><h2>Alertes aujourd'hui</h2>{{ alertes | length }}</div>
+<section class="kpis" aria-label="Indicateurs clés">
+ <div class="kpi verre"><span class="lib">Articles collectés · 24 h</span><span class="val">{{ etat.articles_24h }}</span>{{ courbe_articles }}</div>
+ <div class="kpi verre"><span class="lib">Événements · 24 h</span><span class="val">{{ etat.evenements_24h }}</span>{{ courbe_evts }}</div>
+ <div class="kpi verre"><span class="lib">Alertes aujourd'hui</span><span class="val">{{ alertes | length }}</span>
+  <span class="doux">seuil {{ p.seuil_critique }}/100</span></div>
+ <div class="kpi verre"><span class="lib">Sources actives</span><span class="val">{{ etat.sources }}</span>
+  <span class="doux">{% if etat.erreurs %}<span style="color:var(--rose)">{{ etat.erreurs }} en erreur</span>{% else %}aucune erreur{% endif %} · collecte {{ 'active' if p.collecte_active else 'EN PAUSE' }} · {{ etat.dernier_cycle | paris('%H:%M') }}</span></div>
+</section>
+
+<div class="rangee">
+ <section class="carte verre" style="flex:2 1 460px" aria-label="Top 24 heures">
+  <div class="ligne"><h2 style="margin-right:auto">Top 24 h</h2><a class="doux" href="/archives">Archives</a></div>
+  {% if top %}<table>{% for v in top %}{% include "_evt.html" %}{% endfor %}</table>
+  {% else %}<div class="doux">Aucun événement sur les dernières 24 h.</div>{% endif %}
+ </section>
+ <section class="carte verre" style="flex:1 1 240px" aria-label="Alertes du jour">
+  <h2>Alertes du jour</h2>
+  {% for a in alertes %}<div class="ligne" style="padding:4px 0"><span class="pilule score p-crit">{{ a.score_envoye }}</span>
+   <a href="/lecture/{{ a.id }}">{{ a.envoye_le | paris('%H:%M') }} · {{ a.apercu }}</a></div>
+  {% else %}<div class="doux">Aucune alerte aujourd'hui.</div>{% endfor %}
+  <h2 style="margin-top:12px">Thèmes · 24 h</h2>
+  <div class="barres">{% for nom, n in themes_24h %}
+   <div class="barre"><div class="ent"><span>{{ nom }}</span><span style="font-weight:600">{{ n }}</span></div>
+   <div class="jauge"><div style="width:{{ (100 * n / themes_24h[0][1]) | round }}%;background:{{ ['#ffffff', '#67e8f9', '#818cf8', '#f0abfc', '#6ee7b7'][loop.index0 % 5] }}"></div></div></div>
+  {% else %}<div class="doux">—</div>{% endfor %}</div>
+ </section>
 </div>
 
-{% if alertes %}
-<div class="carte"><h2>Alertes du jour</h2>
-{% for a in alertes %}<div class="ligne"><span class="score crit">{{ a.score_envoye }}</span>
-<a href="/lecture/{{ a.id }}">Alerte de {{ a.envoye_le | paris('%H:%M') }}</a>
-{% if a.evenement_id %}<a class="doux" href="/evenement/{{ a.evenement_id }}">détail</a>{% endif %}</div>{% endfor %}
-</div>
-{% endif %}
-
-<div class="carte"><h2>Top 24 h</h2>
-{% if top %}<table>{% for v in top %}{% include "_evt.html" %}{% endfor %}</table>
-{% else %}<div class="doux">Aucun événement sur les dernières 24 h.</div>{% endif %}
-</div>
-
-<div class="carte"><h2>{% if dernier %}{{ TYPES[dernier.type] }} du {{ dernier.envoye_le | paris }}{% else %}Briefing{% endif %}</h2>
-{% if dernier %}<div class="texte">{{ contenu }}</div>
-{% else %}<div class="doux">Pas encore de briefing : le premier sera produit à {{ p.heure_briefing }}.</div>{% endif %}
-</div>
+<section class="carte verre texte" aria-label="Dernier briefing">
+ <div class="ligne" style="margin-bottom:4px"><h2 style="margin:0 auto 0 0">{% if dernier %}{{ TYPES[dernier.type] }}{% else %}Briefing{% endif %}</h2>
+ {% if dernier %}<span class="doux">{{ dernier.envoye_le | jour }} {{ dernier.envoye_le | paris('%H:%M') }}</span>{% endif %}</div>
+ {% if dernier %}{{ contenu }}
+ {% else %}<div class="doux">Pas encore de briefing : le premier sera produit à {{ p.heure_briefing }}.</div>{% endif %}
+</section>
 {% endblock %}

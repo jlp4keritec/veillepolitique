@@ -1,6 +1,8 @@
 {# une ligne d'evenement : variable `v` #}
 <tr>
-<td><span class="score {{ score_classe(v.score) }}">{{ v.score }}</span></td>
+<td style="width:44px"><span class="pilule score p-{{ score_classe(v.score) }}">{{ v.score }}</span></td>
 <td><a href="/evenement/{{ v.id }}">{{ v.titre }}</a>
-<div class="doux">{{ v.theme or 'sans thème' }} · {{ 'Lyon/AURA' if v.zone == 'regional' else 'national' }} · {{ v.tendance }} · {{ v.verification }} · {{ v.nb_sources }} source(s)</div></td>
+<div class="ligne doux" style="margin-top:3px">{{ v.theme or 'sans thème' }} · {{ 'Lyon/AURA' if v.zone == 'regional' else 'national' }} · {{ v.nb_sources }} source(s)
+<span class="pilule {{ verif_classe(v.verification) }}">{{ v.verification }}</span>
+{% if v.tendance in ('forte hausse', 'en hausse') %}<span class="pilule p-cyan">{{ v.tendance }}</span>{% endif %}</div></td>
 </tr>

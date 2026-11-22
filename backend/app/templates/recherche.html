@@ -1,22 +1,22 @@
 {% extends "base.html" %}
 {% block contenu %}
-<div class="carte">
+<section class="carte verre">
 <form class="filtres" method="get">
-<input name="q" value="{{ f.q }}" placeholder="mots (ex. retraites senat)" style="flex:1;min-width:160px">
-<select name="theme"><option value="">tous thèmes</option>{% for t in themes %}<option {% if t == f.theme %}selected{% endif %}>{{ t }}</option>{% endfor %}</select>
-<select name="zone"><option value="">toutes zones</option><option value="national" {% if f.zone == 'national' %}selected{% endif %}>national</option>
+<input name="q" value="{{ f.q }}" placeholder="mots (ex. retraites senat)" style="flex:1;min-width:160px" aria-label="Mots">
+<select name="theme" aria-label="Thème"><option value="">tous thèmes</option>{% for t in themes %}<option {% if t == f.theme %}selected{% endif %}>{{ t }}</option>{% endfor %}</select>
+<select name="zone" aria-label="Zone"><option value="">toutes zones</option><option value="national" {% if f.zone == 'national' %}selected{% endif %}>national</option>
 <option value="regional" {% if f.zone == 'regional' %}selected{% endif %}>Lyon/AURA</option></select>
-<input type="date" name="du" value="{{ f.du }}"><input type="date" name="au" value="{{ f.au }}">
+<input type="date" name="du" value="{{ f.du }}" aria-label="Du"><input type="date" name="au" value="{{ f.au }}" aria-label="Au">
 <button>Chercher</button>
 </form>
-</div>
-{% if lance %}<div class="carte">
-<div class="doux">{{ rows | length }} article(s){% if rows | length == 100 %} (100 premiers){% endif %}</div>
+</section>
+{% if lance %}<section class="carte verre">
+<div class="doux" style="margin-bottom:4px">{{ rows | length }} article(s){% if rows | length == 100 %} (100 premiers){% endif %}</div>
 {% if rows %}<table>{% for a in rows %}
-<tr><td class="doux" style="white-space:nowrap">{{ a.publie_le | paris }}</td>
+<tr><td class="doux" style="white-space:nowrap;width:80px">{{ a.publie_le | paris }}</td>
 <td><b>{{ a.source }}</b> · <a href="{{ a.url }}" target="_blank" rel="noopener noreferrer">{{ a.titre }}</a>
-{% if a.evenement_id %} <a class="doux" href="/evenement/{{ a.evenement_id }}">dossier</a>{% endif %}
-<div class="doux">{{ a.theme or '' }}{% if a.zone == 'regional' %} · Lyon/AURA{% endif %}</div></td></tr>
+<div class="ligne doux" style="margin-top:3px">{% if a.theme %}<span class="pilule p-acc">{{ a.theme }}</span>{% endif %}{% if a.zone == 'regional' %}<span class="pilule p-faible">Lyon/AURA</span>{% endif %}
+{% if a.evenement_id %}<a href="/evenement/{{ a.evenement_id }}">dossier →</a>{% endif %}</div></td></tr>
 {% endfor %}</table>{% else %}<div class="doux">Données insuffisantes : aucun article ne correspond.</div>{% endif %}
-</div>{% endif %}
+</section>{% endif %}
 {% endblock %}
