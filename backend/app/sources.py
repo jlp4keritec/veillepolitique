@@ -35,6 +35,10 @@ def charger_defaut(path: Path = DEFAUT_PATH) -> list[SourceIn]:
 SOURCES_MAJ: dict[str, str] = {
     "https://www.leprogres.fr/": "https://www.leprogres.fr/rss",
     "https://www.senat.fr/": "https://www.senat.fr/rss/presse.rss",
+    # 23/11/2026 : flux officiels verifies par J et Claude
+    "https://www.info.gouv.fr/": "https://www.info.gouv.fr/rss/actualites.xml",
+    "https://www.assemblee-nationale.fr/": "https://www2.assemblee-nationale.fr/feeds/detail/crs",
+    "https://www.grandlyon.com/": "https://www.grandlyon.com/actualites.xml",
 }
 
 

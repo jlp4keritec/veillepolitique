@@ -1,5 +1,19 @@
 # CHANGELOG - VEILLE
 
+## [0.10.1] - 2026-11-23 - Trois flux officiels retrouves (F01)
+
+### Ajoute
+- 3 sources institutionnelles passent de "desactivee" a flux RSS actif (verifies le 23/11/2026) :
+  - Gouvernement : https://www.info.gouv.fr/rss/actualites.xml
+  - Assemblee nationale (comptes rendus des seances) : https://www2.assemblee-nationale.fr/feeds/detail/crs
+  - Metropole de Lyon : https://www.grandlyon.com/actualites.xml
+- Base existante : mise a jour automatique au demarrage, SEULEMENT si J n'a pas modifie l'ancienne ligne
+  (toujours "site", desactivee, meme adresse). Sinon le nouveau flux est ajoute a cote, rien n'est ecrase.
+- Test de cette mise a jour (140 au total).
+
+### Modifie
+- Notes Elysee (pas de flux, reverifie) et Region AURA (flux /rss.xml technique, inutilisable).
+
 ## [0.10.0] - 2026-11-23 - Serveur MCP (lecture seule) et conservation de la base (F09, F10)
 
 ### Ajoute

@@ -102,3 +102,30 @@ def test_sources_trouvees_mises_a_jour_si_non_modifiees(db):
     assert "https://www.senat.fr/" not in urls
     assert "https://www.leprogres.fr/" in urls  # J l'avait modifiee : jamais touchee
     assert seed_sources(db) == 0  # idempotent
+
+
+def test_flux_officiels_trouves_mis_a_jour(db):
+    """Base existante : les 3 sources 'site' desactivees passent sur leur flux RSS (23/11/2026),
+    sans doublon ; une source modifiee par J (ici reactivee) n'est pas touchee."""
+    anciennes = {
+        "https://www.info.gouv.fr/": "Gouvernement - info.gouv.fr",
+        "https://www.assemblee-nationale.fr/": "Assemblee nationale",
+        "https://www.grandlyon.com/": "Metropole de Lyon",
+    }
+    with sqlite3.connect(db) as c:
+        for url, nom in anciennes.items():
+            actif = 1 if "grandlyon" in url else 0  # J a touche a celle-ci
+            c.execute(
+                "INSERT INTO sources (nom,url,type,categorie,niveau,zone,frequence_minutes,actif)"
+                " VALUES (?,?,'site','institutionnel',1,'national',60,?)", (nom, url, actif))
+    seed_sources(db)
+    par_url = {s["url"]: s for s in lister_sources(db)}
+    for url in ("https://www.info.gouv.fr/rss/actualites.xml",
+                "https://www2.assemblee-nationale.fr/feeds/detail/crs"):
+        assert par_url[url]["type"] == "rss" and par_url[url]["actif"] == 1
+    assert "https://www.info.gouv.fr/" not in par_url
+    assert "https://www.assemblee-nationale.fr/" not in par_url
+    # modifiee par J : conservee telle quelle ; le nouveau flux est ajoute a cote
+    assert par_url["https://www.grandlyon.com/"]["type"] == "site"
+    assert "https://www.grandlyon.com/actualites.xml" in par_url
+    assert len(par_url) == len(charger_defaut()) + 1
