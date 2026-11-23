@@ -23,6 +23,7 @@ from app.analyse import niveau
 from app.config import get_settings
 from app.db import get_etat, session
 from app.ia import etat_budget
+from app import quotidien
 from app.recherche import chercher_articles, chronologie
 from app.util import from_iso, to_iso, utcnow
 
@@ -233,6 +234,35 @@ def evenement(request: Request, evt_id: int):
                 details=json.loads(e["score_details"] or "{}"), tendance=json.loads(e["tendance_details"] or "{}"),
                 verif=json.loads(e["verification_details"] or "{}"), acteurs=json.loads(e["acteurs"] or "[]"),
                 themes=json.loads(e["themes"] or "[]"))
+
+
+# ------------------------------------------------------------------ journal quotidien (F10)
+@router.get("/journal", response_class=HTMLResponse)
+def journal(request: Request, jour: str = ""):
+    aujourdhui = quotidien.jour_paris(utcnow())
+    try:
+        choisi = datetime.strptime(jour, "%Y-%m-%d").date() if jour else aujourdhui
+    except ValueError:
+        return RedirectResponse("/journal", status_code=303)
+    if choisi > aujourdhui:
+        return RedirectResponse("/journal", status_code=303)
+    with session(get_settings().db_path) as conn:
+        photo = quotidien.lire(conn, choisi)
+        if photo:
+            statut = "rattrape" if photo["rattrape"] else "photo"
+            data = photo
+        else:
+            statut = "en_cours" if choisi == aujourdhui else "reconstitue"
+            data = quotidien.calculer(conn, choisi)
+        messages = [(r, _apercu(r["debut"])) for r in quotidien.messages_du_jour(conn, choisi)]
+        premier = quotidien.premier_jour(conn)
+    prec = choisi - timedelta(days=1)
+    return page("journal.html", request, titre_page="Journal", entete="Journal du jour", jour=choisi,
+                jour_txt=f"{JOURS[choisi.weekday()].capitalize()} {choisi.day} {MOIS[choisi.month - 1]} {choisi.year}",
+                statut=statut, photo_le=photo["photo_le"] if photo else None, top=data["top"],
+                chiffres=data["chiffres"], messages=messages, jour_max=aujourdhui,
+                prec=prec if (premier is None or prec >= premier) else None,
+                suiv=choisi + timedelta(days=1) if choisi < aujourdhui else None)
 
 
 # ------------------------------------------------------------------ recherche (F10)

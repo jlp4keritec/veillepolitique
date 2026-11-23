@@ -38,4 +38,4 @@ Mot de passe : `MOT_DE_PASSE_PAGES` dans `backend/.env` (vide = pas de protectio
 `notifications` · `journal` · `couts` · `question` · `cycle` · `syntheses/{type}` · `pause` · `reprise`
 
 ## État
-Version 0.4.0 : MVP + pages + e-mail + kit de mise en ligne VPS (`docs/DEPLOIEMENT.md`). Voir `CHANGELOG.md`.
+Version 0.6.0 : MVP + pages + journal quotidien + e-mail + mise en ligne VPS depuis le PC ou le Mac (`docs/DEPLOIEMENT.md`). Voir `CHANGELOG.md`.

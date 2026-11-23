@@ -26,6 +26,7 @@ from app.db import get_etat, session, set_etat
 from app.diffusion import diffuseur_depuis_config
 from app.ia import ClientIA, etat_budget, proposer_classification, resumes_vers_evenements, resumeur
 from app.journal import ecrire
+from app.quotidien import tache as journal_quotidien
 from app.parametres import tous
 from app.regroupement import regrouper_nouveaux
 from app.syntheses import briefing, point_veille, synthese_soir
@@ -148,6 +149,11 @@ class Orchestrateur:
                 if not recent and (not der or now - from_iso(der) >= timedelta(hours=p["intervalle_point_heures"])):
                     if self._synthese(conn, "point", now, a_la_demande=False):
                         envoyes.append("point")
+            try:  # photo quotidienne du top (F10) : n'empeche jamais le reste
+                for j in journal_quotidien(conn, now):
+                    ecrire(conn, "INFO", "journal", f"photo du top enregistree pour le {j}")
+            except Exception as exc:  # noqa: BLE001
+                ecrire(conn, "ERREUR", "journal", f"photo quotidienne : {type(exc).__name__}")
         return envoyes
 
     # ------------------------------------------------------------ Telegram entrant

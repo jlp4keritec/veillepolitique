@@ -135,6 +135,15 @@ CREATE TABLE IF NOT EXISTS etat (
     cle    TEXT PRIMARY KEY,
     valeur TEXT NOT NULL
 );
+
+-- Journal quotidien (F10, v0.6.0) : photo du top de chaque journee, jamais modifiee
+CREATE TABLE IF NOT EXISTS journal_quotidien (
+    jour       TEXT PRIMARY KEY,          -- AAAA-MM-JJ (heure de Paris)
+    photo_le   TEXT NOT NULL,             -- moment de la photo (UTC)
+    rattrape   INTEGER NOT NULL DEFAULT 0 CHECK (rattrape IN (0,1)),
+    top        TEXT NOT NULL,             -- JSON : evenements tels qu'ils etaient
+    chiffres   TEXT NOT NULL              -- JSON : comptes mesures de la journee
+);
 """
 
 # Colonnes ajoutees apres la v0.1.0 (table, colonne, definition)

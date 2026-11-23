@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block contenu %}
+<section class="carte verre">
+<form class="filtres" method="get" style="align-items:center">
+{% if prec %}<a class="bouton" style="display:inline-flex;align-items:center;text-decoration:none" href="/journal?jour={{ prec.isoformat() }}" aria-label="Jour précédent">←</a>{% endif %}
+<b style="font:600 15px var(--titre)">{{ jour_txt }}</b>
+{% if suiv %}<a class="bouton" style="display:inline-flex;align-items:center;text-decoration:none" href="/journal?jour={{ suiv.isoformat() }}" aria-label="Jour suivant">→</a>{% endif %}
+<input type="date" name="jour" value="{{ jour.isoformat() }}" max="{{ jour_max.isoformat() }}" aria-label="Choisir un jour">
+<button>Voir</button>
+{% if jour != jour_max %}<a href="/journal">aujourd'hui</a>{% endif %}
+</form>
+<div class="doux" style="margin-top:6px">
+{% if statut == 'photo' %}<span class="pilule p-info">photo du {{ photo_le | paris }}</span> classement figé tel qu'il était ce soir-là.
+{% elif statut == 'rattrape' %}<span class="pilule p-imp">photo rattrapée le {{ photo_le | paris }}</span> le serveur était arrêté à {{ p.heure_journal }} : classement pris au redémarrage.
+{% elif statut == 'en_cours' %}<span class="pilule p-cyan">journée en cours</span> classement provisoire, photo à {{ p.heure_journal }}.
+{% else %}<span class="pilule p-crit">reconstitué</span> pas de photo pour ce jour : classement recalculé avec les scores d'aujourd'hui, il peut différer de celui du jour même.{% endif %}
+</div>
+</section>
+
+<section class="kpis" aria-label="Chiffres du jour">
+ <div class="kpi verre"><span class="lib">Articles collectés</span><span class="val">{{ chiffres.articles }}</span><span class="doux">{{ chiffres.pertinents }} retenus</span></div>
+ <div class="kpi verre"><span class="lib">Nouveaux événements</span><span class="val">{{ chiffres.nouveaux_evenements }}</span></div>
+ <div class="kpi verre"><span class="lib">Alertes envoyées</span><span class="val">{{ chiffres.alertes }}</span><span class="doux">seuil {{ p.seuil_critique }}/100</span></div>
+ <div class="kpi verre"><span class="lib">Coût IA du jour</span><span class="val">{{ '%.2f' | format(chiffres.cout_ia_eur) }} €</span></div>
+</section>
+
+<div class="rangee">
+<section class="carte verre" style="flex:2 1 460px" aria-label="Top du jour">
+<h2>Top {{ top | length }} du jour</h2>
+{% if top %}<table>{% for v in top %}
+<tr><td style="width:44px"><span class="pilule score p-{{ score_classe(v.score) }}">{{ v.score }}</span></td>
+<td><a href="/evenement/{{ v.id }}">{{ v.titre }}</a>
+<div class="ligne doux" style="margin-top:3px">{{ v.theme or 'sans thème' }} · {{ 'Lyon/AURA' if v.zone == 'regional' else 'national' }} · {{ v.nb_sources }} source(s)
+<span class="pilule {{ verif_classe(v.verification) }}">{{ v.verification }}</span>
+{% if v.tendance in ('forte hausse', 'en hausse') %}<span class="pilule p-cyan">{{ v.tendance }}</span>{% endif %}</div>
+{% if v.raisons %}<div class="doux" style="margin-top:2px">Pourquoi : {{ v.raisons | join(' ; ') }}</div>{% endif %}
+{% if v.sources %}<div style="margin-top:2px">{% for s in v.sources %}<a href="{{ s.url }}" target="_blank" rel="noopener noreferrer">{{ s.nom }}</a>{% if not loop.last %} · {% endif %}{% endfor %}</div>{% endif %}
+</td></tr>{% endfor %}</table>
+{% else %}<div class="doux">Aucun événement ce jour-là.</div>{% endif %}
+</section>
+<section class="carte verre" style="flex:1 1 240px" aria-label="Messages du jour">
+<h2>Messages du jour</h2>
+{% for r, apercu in messages %}<div class="ligne" style="padding:3px 0">
+<span class="pilule {{ 'p-crit' if r.type == 'alerte' else 'p-acc' if r.type in ('briefing', 'synthese') else 'p-cyan' }}">{{ TYPES.get(r.type, r.type) }}{% if r.type == 'alerte' and r.score_envoye %} · {{ r.score_envoye }}{% endif %}</span>
+<a href="/lecture/{{ r.id }}">{{ r.envoye_le | paris('%H:%M') }} · {{ apercu }}</a></div>
+{% else %}<div class="doux">Aucun briefing, point, synthèse ni alerte ce jour-là.</div>{% endfor %}
+</section>
+</div>
+{% endblock %}

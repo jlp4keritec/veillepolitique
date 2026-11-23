@@ -1,5 +1,20 @@
 # CHANGELOG - VEILLE
 
+## [0.6.0] - 2026-11-23 - Journal quotidien (F10)
+
+### Ajoute
+- Page Journal (/journal, menu) : un jour au choix (fleches ou calendrier), son top (score,
+  raisons, verification, sources et liens), ses chiffres mesures (articles collectes et retenus,
+  nouveaux evenements, alertes, cout IA) et tous ses messages (briefing, points, synthese, alertes).
+- Photo quotidienne du top par l'executeur a heure_journal (23:55 par defaut), jamais modifiee
+  ensuite ; rattrapage de la veille au redemarrage si le serveur etait arrete (signale).
+- Jours sans photo : classement recalcule avec les scores actuels, affiche "reconstitue".
+- Parametres : heure_journal (23:55), journal_taille_top (10). Table journal_quotidien.
+- 7 tests (96 au total).
+
+### Modifie
+- Version affichee : 0.6.0 (0.4.0 auparavant).
+
 ## [0.5.0] - 2026-11-23 - Deploiement depuis le PC Windows
 
 ### Ajoute

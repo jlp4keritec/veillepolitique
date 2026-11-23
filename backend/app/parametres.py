@@ -103,6 +103,9 @@ DEFAUTS: dict[str, tuple[Any, str]] = {
     "messages_courts": (True, "Briefing/synthese/point envoyes en court avec lien (si URL_PUBLIQUE)"),
     # --- Pages ---
     "nom_affiche": ("Jean-Luc", "Prenom affiche sur l'accueil des pages"),
+    # --- Journal quotidien (F10) ---
+    "heure_journal": ("23:55", "Heure de la photo quotidienne du top (Paris)"),
+    "journal_taille_top": (10, "Nombre d'evenements gardes dans le top du jour"),
     # --- Syntheses (F06-F08) ---
     "heure_briefing": ("08:00", "Heure du briefing matinal (Paris)"),
     "heure_synthese_soir": ("20:00", "Heure de la synthese du soir (Paris)"),
