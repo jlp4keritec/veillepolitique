@@ -1,5 +1,20 @@
 # CHANGELOG - VEILLE
 
+## [0.11.1] - 2026-11-23 - Fusion des livraisons paralleles + outils MCP compatibles LILY
+
+### Fusion
+- Reunit deux livraisons faites en parallele : flux officiels (0.10.1) et lecteur Elysee (0.11.0)
+  d'une part, noms d'outils MCP compatibles LILY d'autre part (livre sous le meme numero 0.10.1).
+  A installer seule, par-dessus n'importe laquelle des livraisons du 23/11.
+
+
+### Corrige
+- LILY ne branche que les outils dont le nom contient un verbe de lecture (lister, lire, consulter,
+  rechercher...). 7 outils sur 8 auraient ete ignores. Nouveaux noms : veille_lister_evenements,
+  veille_lire_evenement, veille_rechercher, veille_consulter_sujet, veille_lire_journal,
+  veille_lister_syntheses, veille_consulter_etat, veille_lister_sources.
+- Verifie avec le client MCP de LILY lui-meme (depot lily, app/mcp_serveurs.py) : 8 outils branches.
+
 ## [0.11.0] - 2026-11-23 - Lecteur de page pour les sites sans flux : Elysee (F01)
 
 ### Ajoute

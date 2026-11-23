@@ -204,12 +204,12 @@ def _schema(props: dict, requis: list | None = None) -> dict:
 JOUR = {"type": "string", "description": "AAAA-MM-JJ (heure de Paris)"}
 ZONE = {"type": "string", "enum": ["national", "regional"], "description": "regional = Lyon / Auvergne-Rhone-Alpes"}
 OUTILS = {
-    "veille_evenements": (outil_evenements, "Evenements politiques recents classes par score (sur 100, explique), "
+    "veille_lister_evenements": (outil_evenements, "Evenements politiques recents classes par score (sur 100, explique), "
                           "avec verification, tendance, sources et liens.", _schema({
                               "depuis_heures": {"type": "integer", "description": "fenetre en heures (defaut 24)"},
                               "score_min": {"type": "integer"}, "theme": {"type": "string"}, "zone": ZONE,
                               "limite": {"type": "integer", "description": "defaut 10, max 50"}})),
-    "veille_evenement": (outil_evenement, "Dossier complet d'un evenement : score detaille, verification, "
+    "veille_lire_evenement": (outil_evenement, "Dossier complet d'un evenement : score detaille, verification, "
                          "chronologie de tous les articles avec liens, messages envoyes.",
                          _schema({"id": {"type": "integer"}}, ["id"])),
     "veille_rechercher": (outil_rechercher, "Recherche dans l'historique des articles (mots, theme, zone, acteur, "
@@ -217,18 +217,18 @@ OUTILS = {
                               "mots": {"type": "string"}, "theme": {"type": "string"}, "zone": ZONE,
                               "acteur": {"type": "string"}, "du": JOUR, "au": JOUR,
                               "limite": {"type": "integer", "description": "defaut 20, max 100"}})),
-    "veille_sujet": (outil_sujet, "Suivre un sujet dans le temps : nombre d'articles par jour et principaux "
+    "veille_consulter_sujet": (outil_sujet, "Suivre un sujet dans le temps : nombre d'articles par jour et principaux "
                      "evenements de chaque jour.", _schema({"mots": {"type": "string"},
                                                             "jours": {"type": "integer", "description": "defaut 30"}},
                                                            ["mots"])),
-    "veille_journal": (outil_journal, "Journal d'un jour : top du jour tel qu'il etait (photo du soir), chiffres, "
+    "veille_lire_journal": (outil_journal, "Journal d'un jour : top du jour tel qu'il etait (photo du soir), chiffres, "
                        "messages envoyes.", _schema({"jour": JOUR})),
-    "veille_syntheses": (outil_syntheses, "Texte des briefings (08:00), syntheses (20:00), points de veille ou "
+    "veille_lister_syntheses": (outil_syntheses, "Texte des briefings (08:00), syntheses (20:00), points de veille ou "
                          "alertes, avec liens.", _schema({
                              "type": {"type": "string", "enum": ["briefing", "synthese", "point", "alerte"]},
                              "jour": JOUR, "limite": {"type": "integer", "description": "defaut 3, max 20"}})),
-    "veille_etat": (outil_etat, "Etat du systeme de veille : derniere collecte, sources, volumes, budget.", _schema({})),
-    "veille_sources": (outil_sources, "Liste des sources suivies (revue de presse) et leur etat.", _schema({})),
+    "veille_consulter_etat": (outil_etat, "Etat du systeme de veille : derniere collecte, sources, volumes, budget.", _schema({})),
+    "veille_lister_sources": (outil_sources, "Liste des sources suivies (revue de presse) et leur etat.", _schema({})),
 }
 
 

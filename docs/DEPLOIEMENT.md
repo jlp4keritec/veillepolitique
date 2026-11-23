@@ -50,7 +50,9 @@ ssh -t -i C:\mailou\id-ed25519 ubuntu@151.80.232.214 'cd ~/veille/backend && .ve
 ```
 2. Brancher :
    - **Claude Code** : `claude mcp add --transport http veille https://veille.mesoutilsagile.com/mcp --header "Authorization: Bearer <jeton>"`
-   - **LILY** : serveur MCP HTTP `https://veille.mesoutilsagile.com/mcp`, en-tête `Authorization: Bearer <jeton>` (jeton dans le `.env` de LILY).
+   - **LILY** : Paramètres → Serveurs MCP → onglet des autres serveurs : id `veille`, nom `VEILLE`, adresse
+     `https://veille.mesoutilsagile.com/mcp`, jeton = le jeton VEILLE → **Tester** (8 outils gardés) → **Ajouter**.
+     LILY range le jeton elle-même.
    - **Claude.ai** (connecteur personnalisé, sans en-tête possible) : adresse `https://veille.mesoutilsagile.com/mcp/<jeton>`.
      Attention : une adresse contenant le jeton apparaît dans les journaux Nginx du serveur ; préférer l'en-tête quand c'est possible.
 3. Vérifier : page « Comment ça marche » → « Accès Claude / LILY (MCP) : actif ».
