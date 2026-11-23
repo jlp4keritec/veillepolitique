@@ -103,6 +103,10 @@ DEFAUTS: dict[str, tuple[Any, str]] = {
     "messages_courts": (True, "Briefing/synthese/point envoyes en court avec lien (si URL_PUBLIQUE)"),
     # --- Pages ---
     "nom_affiche": ("Jean-Luc", "Prenom affiche sur l'accueil des pages"),
+    # --- Conservation de la base ---
+    "conservation_extraits_mois": (12, "Apres N mois, le texte des extraits est retire (titre, lien, source gardes) ; 0 = jamais"),
+    "conservation_journal_jours": (90, "Messages techniques de fonctionnement gardes N jours ; 0 = toujours"),
+    "heure_entretien": ("03:45", "Heure de l'entretien de nuit de la base (Paris)"),
     # --- Journal quotidien (F10) ---
     "heure_journal": ("23:55", "Heure de la photo quotidienne du top (Paris)"),
     "journal_taille_top": (10, "Nombre d'evenements gardes dans le top du jour"),

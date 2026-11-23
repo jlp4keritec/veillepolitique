@@ -26,6 +26,7 @@ from app.db import get_etat, session, set_etat
 from app.diffusion import diffuseur_depuis_config
 from app.ia import ClientIA, client_ia_depuis_config, etat_budget, proposer_classification, resumes_vers_evenements, resumeur
 from app.journal import ecrire
+from app import maintenance
 from app.quotidien import tache as journal_quotidien
 from app.parametres import tous
 from app.regroupement import regrouper_nouveaux
@@ -154,6 +155,22 @@ class Orchestrateur:
                     ecrire(conn, "INFO", "journal", f"photo du top enregistree pour le {j}")
             except Exception as exc:  # noqa: BLE001
                 ecrire(conn, "ERREUR", "journal", f"photo quotidienne : {type(exc).__name__}")
+            compacter = False
+            try:  # entretien de nuit : conservation (regles de J)
+                bilan = maintenance.tache(conn, now)
+                if bilan:
+                    ecrire(conn, "INFO", "entretien", f"extraits alleges : {bilan['extraits']}, "
+                                                      f"messages techniques purges : {bilan['journal']}")
+                    compacter = bool(bilan.get("compactage"))
+            except Exception as exc:  # noqa: BLE001
+                ecrire(conn, "ERREUR", "entretien", f"{type(exc).__name__}")
+        if compacter:  # hors transaction : VACUUM mensuel (verrou : aucun cycle en meme temps)
+            try:
+                with self.verrou:
+                    maintenance.compacter(self.db_path, now)
+            except Exception as exc:  # noqa: BLE001
+                with session(self.db_path) as conn:
+                    ecrire(conn, "ERREUR", "entretien", f"compactage : {type(exc).__name__}")
         return envoyes
 
     # ------------------------------------------------------------ Telegram entrant

@@ -190,6 +190,7 @@ COLONNES_AJOUTEES = [
     ("notifications", "message_envoye", "TEXT"),
     ("articles", "classif_details", "TEXT"),  # v0.7.0 : mots trouves (bulles d'aide)
     ("couts", "fournisseur", "TEXT"),  # v0.9.0 : anthropic, openrouter, local
+    ("articles", "allege", "INTEGER NOT NULL DEFAULT 0"),  # v0.10.0 : extrait retire (conservation)
 ]
 
 

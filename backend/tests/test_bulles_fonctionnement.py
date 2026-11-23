@@ -50,7 +50,8 @@ def test_page_fonctionnement(client, conn):  # noqa: F811
     assert r.status_code == 200
     for txt in ("Les agents proposent, tes règles décident", "Orchestrateur", "Collecte (F01)", "Regroupement (F03)",
                 "Score (F04)", "Exécuteur", "jamais deux fois", "Statuts de vérification", "Ta revue de presse",
-                "inactive", "S0", 'href="/fonctionnement"', "Double avis"):
+                "inactive", "S0", 'href="/fonctionnement"', "Double avis", "Ta base de connaissances",
+                "pour toujours"):
         assert txt in r.text, txt
 
 

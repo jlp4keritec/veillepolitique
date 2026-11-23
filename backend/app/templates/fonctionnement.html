@@ -19,7 +19,8 @@ Les scores et les tendances viennent de comptages mesurés, pas de l'intuition d
 <div class="ligne doux" style="margin-top:6px">
 <span>IA : <b>{{ ia_etat }}</b></span> ·
 <span>Diffusion : {% if canaux.email %}e-mail{% endif %}{% if canaux.email and canaux.telegram %} + {% endif %}{% if canaux.telegram %}Telegram{% endif %}{% if not canaux.email and not canaux.telegram %}pages web seulement{% endif %}</span> ·
-<span>dernier cycle {{ stats.dernier_cycle | paris }}</span></div>
+<span>dernier cycle {{ stats.dernier_cycle | paris }}</span> ·
+<span>Accès Claude / LILY (MCP, lecture seule) : <b>{{ 'actif' if mcp_actif else 'inactif (pas de jeton)' }}</b></span></div>
 <div class="ligne doux" style="margin-top:3px">Depuis le début : {{ stats.articles }} articles lus, {{ stats.pertinents }} retenus, {{ stats.evenements }} événements, {{ stats.messages }} messages, {{ stats.photos }} photo(s) du Journal.</div>
 </section>
 
@@ -94,6 +95,21 @@ Un cycle complet toutes les {{ p.intervalle_cycle_minutes }} min ; l'horloge (br
 <section class="carte verre" aria-label="Statuts de vérification">
 <h2>Statuts de vérification</h2>
 <table>{% for k, v in VERIFICATION.items() %}<tr><td style="width:210px"><span class="pilule {{ verif_classe(k) }}">{{ k }}</span></td><td>{{ v }}</td></tr>{% endfor %}</table>
+</section>
+
+<section class="carte verre" aria-label="Taille et conservation de la base">
+<h2>Ta base de connaissances</h2>
+<div class="kpis" style="margin-bottom:6px">
+<div class="kpi" style="padding:4px 0"><span class="lib">Taille actuelle</span><span class="val">{{ base.mo }} Mo</span></div>
+<div class="kpi" style="padding:4px 0"><span class="lib">Articles</span><span class="val">{{ base.articles }}</span><span class="doux">dont {{ base.alleges }} allégé(s)</span></div>
+<div class="kpi" style="padding:4px 0"><span class="lib">Rythme (7 derniers jours)</span><span class="val">{{ '%.0f' | format(base.articles_jour) }}</span><span class="doux">articles par jour</span></div>
+<div class="kpi" style="padding:4px 0"><span class="lib">Projection sur un an</span><span class="val">{% if base.projection_an_mo is not none %}~{{ base.projection_an_mo }} Mo{% else %}—{% endif %}</span>
+<span class="doux">{% if base.projection_an_mo is none %}après 3 jours de mesure{% else %}au rythme observé ({{ base.age_jours }} j){% endif %}</span></div>
+</div>
+<div class="doux">Gardés <b>pour toujours</b> : événements, synthèses, alertes, photos du Journal, coûts, historique des réglages.
+Après {{ p.conservation_extraits_mois }} mois, le texte des extraits d'articles est retiré (titre, lien, source, date et classement gardés){% if not p.conservation_extraits_mois %} — désactivé{% endif %}.
+Messages techniques gardés {{ p.conservation_journal_jours }} jours. Entretien chaque nuit à {{ p.heure_entretien }} (dernier : {{ base.dernier_entretien | paris }}), compactage une fois par mois (dernier : {{ base.dernier_compactage | paris }}).
+Réglable dans Réglages.</div>
 </section>
 
 <section class="carte verre" aria-label="Sources de la revue de presse">

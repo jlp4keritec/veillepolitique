@@ -34,7 +34,7 @@ SECTIONS: dict[str, dict] = {
         ("heure_journal", "Photo du top pour le Journal", "heure", ""),
         ("journal_taille_top", "Taille du top du Journal", "nombre", ""),
     ]},
-    "collecte": {"titre": "Collecte et budget", "champs": [
+    "collecte": {"titre": "Collecte, budget et conservation", "champs": [
         ("collecte_active", "Collecte automatique", "oui_non", "Non = pause."),
         ("intervalle_cycle_minutes", "Un cycle toutes les (minutes)", "nombre", ""),
         ("ia_active", "Utiliser l'IA (si disponible)", "oui_non", "Non = règles seules."),
@@ -42,12 +42,17 @@ SECTIONS: dict[str, dict] = {
         ("budget_x_eur", "Budget veille X mensuel (€)", "nombre", "Réservé à la phase X (pas encore active)."),
         ("budget_alerte_pct", "Me prévenir à (% du budget)", "nombre", ""),
         ("nom_affiche", "Prénom affiché sur l'accueil", "texte", ""),
+        ("conservation_extraits_mois", "Alléger les extraits après (mois)", "nombre",
+         "Titre, lien, source et date sont gardés. 0 = jamais."),
+        ("conservation_journal_jours", "Garder les messages techniques (jours)", "nombre", "0 = toujours."),
+        ("heure_entretien", "Heure de l'entretien de nuit", "heure", "Après la sauvegarde de 03:15."),
     ]},
 }
 
 LIMITES = {"intervalle_cycle_minutes": (5, 1440), "intervalle_point_heures": (1, 24), "journal_taille_top": (1, 50),
            "budget_alerte_pct": (1, 100), "alerte_max_mises_a_jour": (0, 20), "budget_mensuel_eur": (0, 1000),
-           "budget_x_eur": (0, 1000), "ia_local_timeout_s": (10, 600)}
+           "budget_x_eur": (0, 1000), "ia_local_timeout_s": (10, 600), "conservation_extraits_mois": (0, 240),
+           "conservation_journal_jours": (0, 3650)}
 
 LIBELLES = {c[0]: c[1] for s in SECTIONS.values() for c in s["champs"]}
 LIBELLES["poids_score"] = "Pondération du score"

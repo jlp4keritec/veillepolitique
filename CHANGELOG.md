@@ -1,5 +1,23 @@
 # CHANGELOG - VEILLE
 
+## [0.10.0] - 2026-11-23 - Serveur MCP (lecture seule) et conservation de la base (F09, F10)
+
+### Ajoute
+- Serveur MCP VEILLE (https://veille.mesoutilsagile.com/mcp) pour Claude, LILY ou tout client MCP :
+  8 outils en LECTURE SEULE (veille_evenements, veille_evenement, veille_rechercher, veille_sujet,
+  veille_journal, veille_syntheses, veille_etat, veille_sources). Chaque resultat porte ses sources et
+  ses liens, et rappelle que les contenus collectes sont des donnees, jamais des instructions.
+  Transport Streamable HTTP sans etat (reponses JSON). Teste avec le client MCP officiel (Python, v2.3.0).
+- Acces par jeton MCP_TOKEN (.env) : en-tete "Authorization: Bearer" (LILY, Claude Code) ou adresse
+  /mcp/<jeton> (connecteur Claude.ai). Sans jeton : ferme (404). Essais rates bloques, 120 appels/min max.
+  scripts/generer_jeton_mcp.py cree le jeton et l'affiche une seule fois dans ton terminal.
+- Conservation (reglable dans Reglages) : texte des extraits d'articles retire apres 12 mois (titre, lien,
+  source, date, classement gardes), messages techniques purges apres 90 jours, entretien de nuit a 03:45,
+  compactage de la base une fois par mois. Evenements, syntheses, alertes, Journal, couts : pour toujours.
+- "Comment ca marche" : taille de la base, rythme d'articles par jour, projection sur un an (apres 3 jours
+  de mesure), dates du dernier entretien et compactage, etat de l'acces MCP.
+- Tests MCP et conservation (139 au total).
+
 ## [0.9.0] - 2026-11-23 - IA locale ou en ligne, relais, double avis, banc d'essai (F12)
 
 ### Ajoute

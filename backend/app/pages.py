@@ -300,7 +300,12 @@ def fonctionnement(request: Request):
     cle_ia = dispo
     ia_etat = (f"active ({ordre})" if dispo else "désactivée par ton réglage" if not p["ia_active"]
                else f"inactive ({raison}) : les règles font tout le travail")
-    return page("fonctionnement.html", request, titre_page="Comment ça marche", entete="Comment ça marche",
+    from app import maintenance
+    with session(s.db_path) as conn:
+        base = maintenance.taille(conn, s.db_path, utcnow())
+    mcp_actif = bool(s.mcp_token.get_secret_value())
+    return page("fonctionnement.html", request, titre_page="Comment ça marche", entete="Comment ça marche", base=base,
+                mcp_actif=mcp_actif,
                 sources=sources, stats=stats, ia_etat=ia_etat, ia_on=cle_ia and p["ia_active"],
                 echelle=explications.echelle(p), canaux={
                     "email": bool(s.smtp_hote and s.email_destinataire),

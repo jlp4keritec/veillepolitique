@@ -43,6 +43,19 @@ ssh -t -i C:\mailou\id-ed25519 ubuntu@151.80.232.214 'cd ~/veille/backend && rea
 ```
 (remplacer `ANTHROPIC_API_KEY` par `OPENROUTER_API_KEY` pour OpenRouter.)
 
+## Serveur MCP (Claude, LILY)
+1. Créer le jeton **sur le VPS** (il s'affiche une seule fois dans ton terminal ; ne jamais le coller dans un chat) :
+```
+ssh -t -i C:\mailou\id-ed25519 ubuntu@151.80.232.214 'cd ~/veille/backend && .venv/bin/python scripts/generer_jeton_mcp.py && cd ~/veille && (pm2 delete veille; VEILLE_PORT=5727 pm2 start ecosystem.config.cjs && pm2 save)'
+```
+2. Brancher :
+   - **Claude Code** : `claude mcp add --transport http veille https://veille.mesoutilsagile.com/mcp --header "Authorization: Bearer <jeton>"`
+   - **LILY** : serveur MCP HTTP `https://veille.mesoutilsagile.com/mcp`, en-tête `Authorization: Bearer <jeton>` (jeton dans le `.env` de LILY).
+   - **Claude.ai** (connecteur personnalisé, sans en-tête possible) : adresse `https://veille.mesoutilsagile.com/mcp/<jeton>`.
+     Attention : une adresse contenant le jeton apparaît dans les journaux Nginx du serveur ; préférer l'en-tête quand c'est possible.
+3. Vérifier : page « Comment ça marche » → « Accès Claude / LILY (MCP) : actif ».
+4. Changer de jeton : même commande avec `--nouveau`, puis mettre à jour Claude / LILY.
+
 ## E-mail (facultatif)
 Sur le VPS, dans `~/veille/backend/.env` : `SMTP_HOTE=smtp.gmail.com`, `SMTP_PORT=587`,
 `SMTP_UTILISATEUR`, `EMAIL_DESTINATAIRE`. Le mot de passe d'application Google se pose sans

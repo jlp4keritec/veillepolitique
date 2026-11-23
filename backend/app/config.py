@@ -19,6 +19,8 @@ class Settings(BaseSettings):
     # Secrets : SecretStr evite qu'ils apparaissent dans les logs
     anthropic_api_key: SecretStr = SecretStr("")
     openrouter_api_key: SecretStr = SecretStr("")
+    # Serveur MCP (lecture seule) pour Claude / LILY : vide = desactive
+    mcp_token: SecretStr = SecretStr("")
     telegram_bot_token: SecretStr = SecretStr("")
     telegram_chat_id: str = ""
 

@@ -38,4 +38,4 @@ Mot de passe : `MOT_DE_PASSE_PAGES` dans `backend/.env` (vide = pas de protectio
 `notifications` · `journal` · `couts` · `question` · `cycle` · `syntheses/{type}` · `pause` · `reprise`
 
 ## État
-Version 0.9.0 : MVP + pages (bulles d aide, Comment ca marche, Reglages) + IA locale/en ligne avec double avis et banc d essai + journal quotidien + e-mail + mise en ligne VPS depuis le PC ou le Mac (`docs/DEPLOIEMENT.md`). Voir `CHANGELOG.md`.
+Version 0.10.0 : MVP + serveur MCP (Claude, LILY) + conservation + pages (bulles d aide, Comment ca marche, Reglages) + IA locale/en ligne avec double avis et banc d essai + journal quotidien + e-mail + mise en ligne VPS depuis le PC ou le Mac (`docs/DEPLOIEMENT.md`). Voir `CHANGELOG.md`.
