@@ -23,7 +23,7 @@ from app.analyse import niveau
 from app.config import get_settings
 from app.db import get_etat, session
 from app.ia import etat_budget
-from app import quotidien
+from app import explications, quotidien
 from app.recherche import chercher_articles, chronologie
 from app.util import from_iso, to_iso, utcnow
 
@@ -125,6 +125,16 @@ def _fenetre(cle: str) -> str:
 env.filters["fenetre"] = _fenetre
 env.filters["jour"] = lambda iso: _jour(iso)
 env.globals.update(version=__version__, TYPES=TYPES_LISIBLES, CRITERES=CRITERES)
+
+
+def _explication_classement(evt_id: int, theme: str | None) -> dict:
+    with session(get_settings().db_path) as conn:
+        return explications.classement(conn, evt_id, theme)
+
+
+env.filters["fromjson"] = lambda s: json.loads(s or "{}")
+env.globals.update(VERIFICATION=explications.VERIFICATION, TENDANCES_TXT=explications.TENDANCES,
+                   score_criteres=explications.score, explication_classement=_explication_classement)
 
 router = APIRouter(include_in_schema=False)
 
@@ -263,6 +273,32 @@ def journal(request: Request, jour: str = ""):
                 chiffres=data["chiffres"], messages=messages, jour_max=aujourdhui,
                 prec=prec if (premier is None or prec >= premier) else None,
                 suiv=choisi + timedelta(days=1) if choisi < aujourdhui else None)
+
+
+# ------------------------------------------------------------------ comment ca marche
+@router.get("/fonctionnement", response_class=HTMLResponse)
+def fonctionnement(request: Request):
+    s = get_settings()
+    with session(s.db_path) as conn:
+        p = parametres.tous(conn)
+        sources = conn.execute("SELECT * FROM sources ORDER BY actif DESC, niveau, zone, nom").fetchall()
+        stats = {
+            "articles": conn.execute("SELECT COUNT(*) FROM articles").fetchone()[0],
+            "pertinents": conn.execute("SELECT COUNT(*) FROM articles WHERE pertinent = 1").fetchone()[0],
+            "evenements": conn.execute("SELECT COUNT(*) FROM evenements").fetchone()[0],
+            "messages": conn.execute("SELECT COUNT(*) FROM notifications").fetchone()[0],
+            "photos": conn.execute("SELECT COUNT(*) FROM journal_quotidien").fetchone()[0],
+            "dernier_cycle": get_etat(conn, "dernier_cycle"),
+            "themes": [r["nom"] for r in conn.execute("SELECT nom FROM themes WHERE actif = 1 ORDER BY nom")],
+        }
+    cle_ia = bool(s.anthropic_api_key.get_secret_value())
+    ia_etat = ("active (Claude)" if cle_ia and p["ia_active"] else
+               "désactivée par ton réglage" if cle_ia else "inactive : aucune clé IA, les règles font tout le travail")
+    return page("fonctionnement.html", request, titre_page="Comment ça marche", entete="Comment ça marche",
+                sources=sources, stats=stats, ia_etat=ia_etat, ia_on=cle_ia and p["ia_active"],
+                echelle=explications.echelle(p), canaux={
+                    "email": bool(s.smtp_hote and s.email_destinataire),
+                    "telegram": bool(s.telegram_bot_token.get_secret_value() and s.telegram_chat_id)})
 
 
 # ------------------------------------------------------------------ recherche (F10)

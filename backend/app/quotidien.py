@@ -54,15 +54,22 @@ def calculer(conn: sqlite3.Connection, jour: date, taille: int | None = None) ->
             if _lien_sur(a["url"]):
                 sources.append({"nom": a["source"], "url": a["url"]})
         top.append({"rang": rang, "id": e["id"], "titre": e["titre"], "score": e["score"], "raisons": raisons,
-                    "tendance": e["tendance"], "verification": e["verification"], "nb_sources": e["nb_sources"],
-                    "theme": e["theme"], "zone": e["zone"], "sources": sources})
+                    "details": details, "tendance": e["tendance"],
+                    "tendance_details": json.loads(e["tendance_details"] or "{}"),
+                    "verification": e["verification"],
+                    "verif_raison": json.loads(e["verification_details"] or "{}").get("raison"),
+                    "nb_sources": e["nb_sources"], "theme": e["theme"], "zone": e["zone"], "sources": sources})
 
     def compte(sql: str, *args) -> int:
         return conn.execute(sql, args).fetchone()[0]
 
     cout = conn.execute("SELECT COALESCE(SUM(cout_eur), 0) FROM couts WHERE horodatage >= ? AND horodatage < ?",
                         (d, f)).fetchone()[0]
+    candidats = conn.execute(
+        "SELECT COUNT(DISTINCT evenement_id) FROM articles WHERE evenement_id IS NOT NULL "
+        "AND publie_le >= ? AND publie_le < ?", (d, f)).fetchone()[0]
     chiffres = {
+        "evenements_du_jour": candidats,
         "articles": compte("SELECT COUNT(*) FROM articles WHERE collecte_le >= ? AND collecte_le < ?", d, f),
         "pertinents": compte("SELECT COUNT(*) FROM articles WHERE pertinent = 1 AND collecte_le >= ? AND collecte_le < ?", d, f),
         "nouveaux_evenements": compte("SELECT COUNT(*) FROM evenements WHERE cree_le >= ? AND cree_le < ?", d, f),

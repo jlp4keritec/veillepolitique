@@ -1,0 +1,44 @@
+{# Bulles d'aide : survol (souris) ou toucher (telephone). Tout vient des donnees mesurees et des regles de J. #}
+{% macro score(valeur, details=None, raisons=None) %}
+<span class="aide" tabindex="0" aria-label="Score {{ valeur }} sur 100, détail">
+<span class="pilule score p-{{ score_classe(valeur) }}">{{ valeur }}</span>
+<span class="bulle" role="tooltip"><b>{{ valeur }}/100 · {{ niveau(valeur) }}</b><br>
+{% set crit = score_criteres(details) if details else [] %}
+{% if crit %}<table>{% for c in crit %}<tr><td>{{ CRITERES.get(c.cle, c.cle) }}</td><td style="white-space:nowrap"><b>{{ c.points }}</b>/{{ p.poids_score.get(c.cle, '?') }}</td></tr>
+{% if c.raison %}<tr><td colspan="2" class="doux" style="border:0;padding-top:0">{{ c.raison }}</td></tr>{% endif %}{% endfor %}</table>
+{% elif raisons %}{% for r in raisons %}• {{ r }}<br>{% endfor %}
+{% else %}<span class="doux">détail non disponible</span><br>{% endif %}
+<span class="doux">Somme de 6 critères mesurés, pondérés par tes réglages. Alerte à partir de {{ p.seuil_critique }}.</span></span></span>
+{% endmacro %}
+
+{% macro verif(statut, raison=None) %}
+<span class="aide" tabindex="0" aria-label="Vérification : {{ statut }}, explication">
+<span class="pilule {{ verif_classe(statut) }}">{{ statut }}</span>
+<span class="bulle" role="tooltip"><b>{{ statut }}</b><br>{{ VERIFICATION.get(statut, '') }}
+{% if raison %}<br><span class="doux">Ici : {{ raison }}</span>{% endif %}</span></span>
+{% endmacro %}
+
+{% macro tendance(etat, details=None, regle=None) %}
+{% set d = (details | fromjson) if details is string else (details or {}) %}
+<span class="aide" tabindex="0" aria-label="Tendance : {{ etat }}, calcul">
+<span class="pilule p-cyan">{{ etat }}</span>
+<span class="bulle" role="tooltip"><b>{{ etat }}</b><br>{{ TENDANCES_TXT.get(etat, '') }}
+{% if regle or d.get('regle') %}<br><span class="doux">Calcul : {{ regle or d.get('regle') }}</span>{% endif %}
+{% set fen = d.items() | rejectattr(0, 'equalto', 'regle') | list %}
+{% if fen %}<table>{% for k, x in fen %}<tr><td>{{ k | fenetre }}</td><td>{{ x.courant }} article(s)</td><td class="doux">avant : {{ x.precedent }}</td></tr>{% endfor %}</table>{% endif %}</span></span>
+{% endmacro %}
+
+{% macro classement(evt_id, theme, zone) %}
+{% set c = explication_classement(evt_id, theme) %}
+<span class="aide" tabindex="0" aria-label="Pourquoi ce thème et cette zone">
+<span class="souligne">{{ theme or 'sans thème' }} · {{ 'Lyon/AURA' if zone == 'regional' else 'national' }}</span>
+<span class="bulle" role="tooltip"><b>Pourquoi « {{ theme or 'sans thème' }} »</b><br>
+{% if c.mots_titre %}Mots-clés dans le titre : {{ c.mots_titre | join(', ') }}<br>{% endif %}
+{% if c.mots_resume %}Mots-clés dans le résumé : {{ c.mots_resume | join(', ') }}<br>{% endif %}
+{% for n in c.notes %}{{ n }}<br>{% endfor %}
+{% if c.ia %}Thème proposé par l'IA sur {{ c.ia }} article(s), accepté car il est dans ta liste de thèmes.<br>{% endif %}
+{% if not c.conserves %}<span class="doux">Mots non conservés (articles classés avant la v0.7.0).</span><br>{% endif %}
+<b>Zone {{ 'Lyon/AURA' if zone == 'regional' else 'nationale' }}</b> : {{ c.zones | join(' ; ') if c.zones else ('au moins un article régional' if zone == 'regional' else 'aucun article régional') }}<br>
+{% if c.types %}<b>Type</b> : {{ c.types | join(' ; ') }}<br>{% endif %}
+<span class="doux">Classement par tes règles (thèmes et mots-clés), sur {{ c.articles }} article(s).</span></span></span>
+{% endmacro %}

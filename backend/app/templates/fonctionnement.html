@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+{% block contenu %}
+<style>
+.flux{display:flex;flex-wrap:wrap;align-items:center;gap:4px}
+.flux .et{padding:4px 8px;border-radius:9px;background:rgba(255,255,255,.08);border:1px solid var(--bord);font-size:12px;white-space:nowrap}
+.flux .et.ia{border-color:rgba(240,171,252,.55)}
+.flux .fl{color:var(--doux)}
+.agents{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:10px}
+.agent h3{margin:0 0 4px;font:600 13px var(--titre);display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.agent dl{margin:0;display:grid;grid-template-columns:78px 1fr;gap:2px 6px;font-size:12px}
+.agent dt{color:var(--doux)}.agent dd{margin:0}
+</style>
+
+<section class="carte verre texte">
+<h2>En bref</h2>
+<div>VEILLE lit en continu des sources publiques, regroupe les articles qui parlent du même fait, mesure leur importance et te prévient.
+<b>Les agents proposent, tes règles décident, l'exécuteur agit.</b> Chaque information garde sa source et son lien ; une rumeur n'est jamais présentée comme un fait.
+Les scores et les tendances viennent de comptages mesurés, pas de l'intuition d'une IA.</div>
+<div class="ligne doux" style="margin-top:6px">
+<span>IA : <b>{{ ia_etat }}</b></span> ·
+<span>Diffusion : {% if canaux.email %}e-mail{% endif %}{% if canaux.email and canaux.telegram %} + {% endif %}{% if canaux.telegram %}Telegram{% endif %}{% if not canaux.email and not canaux.telegram %}pages web seulement{% endif %}</span> ·
+<span>dernier cycle {{ stats.dernier_cycle | paris }}</span></div>
+<div class="ligne doux" style="margin-top:3px">Depuis le début : {{ stats.articles }} articles lus, {{ stats.pertinents }} retenus, {{ stats.evenements }} événements, {{ stats.messages }} messages, {{ stats.photos }} photo(s) du Journal.</div>
+</section>
+
+<section class="carte verre">
+<h2>Le parcours d'une information</h2>
+<div class="flux" aria-label="Étapes dans l'ordre">
+<span class="et">1. Collecte</span><span class="fl">→</span><span class="et">2. Tri</span><span class="fl">→</span>
+<span class="et ia">3. Classement</span><span class="fl">→</span><span class="et">4. Regroupement</span><span class="fl">→</span>
+<span class="et">5. Tendance</span><span class="fl">→</span><span class="et">6. Score /100</span><span class="fl">→</span>
+<span class="et ia">7. Vérification</span><span class="fl">→</span><span class="et ia">8. Alertes et synthèses</span><span class="fl">→</span>
+<span class="et">9. Archives et Journal</span></div>
+<div class="doux" style="margin-top:5px">Bordure rose : étape où l'IA peut <b>proposer</b> (si elle est active). Toutes les autres sont des calculs fixes.
+Un cycle complet toutes les {{ p.intervalle_cycle_minutes }} min ; l'horloge (briefing, points, synthèse, photo du Journal) chaque minute.</div>
+</section>
+
+<section class="agents" aria-label="Les agents">
+<div class="carte verre agent"><h3>Orchestrateur <span class="pilule p-faible">sans IA</span></h3><dl>
+<dt>Rôle</dt><dd>Chef d'orchestre : lance les autres dans l'ordre, surveille les erreurs et le budget.</dd>
+<dt>Rythme</dt><dd>cycle toutes les {{ p.intervalle_cycle_minutes }} min · collecte {{ 'active' if p.collecte_active else 'EN PAUSE' }}</dd>
+<dt>Décide ?</dt><dd>Non : il suit tes horaires et tes fréquences.</dd></dl></div>
+
+<div class="carte verre agent"><h3>1. Collecte (F01) <span class="pilule p-faible">sans IA</span></h3><dl>
+<dt>Reçoit</dt><dd>Les flux RSS de tes {{ sources | selectattr('actif') | list | length }} sources actives (liste en bas de page).</dd>
+<dt>Produit</dt><dd>Pour chaque article : titre, lien, date, auteur, extrait (max {{ p.extrait_max_caracteres }} caractères), source.</dd>
+<dt>Garde-fous</dt><dd>Respect de la fréquence de chaque source ; une source en panne n'arrête pas les autres ; le contenu lu est une <b>donnée</b>, jamais une instruction.</dd></dl></div>
+
+<div class="carte verre agent"><h3>2–3. Tri et classement (F02) <span class="pilule p-acc">IA possible</span></h3><dl>
+<dt>Tri</dt><dd>Écarte les titres trop courts (&lt; {{ p.titre_mots_min }} mots) et les mots exclus ({{ p.mots_exclus | length }}). Garde ce qui touche un thème ou un acteur suivi.</dd>
+<dt>Classement</dt><dd>Thème ({{ stats.themes | length }} thèmes), zone (Lyon/AURA si source régionale ou mot régional), acteurs, type (vote, décision…), par <b>tes mots-clés</b>.</dd>
+<dt>IA</dt><dd>Peut proposer un classement plus fin (max {{ p.ia_max_articles_par_cycle }} articles par cycle) ; refusé s'il sort de tes listes.</dd></dl></div>
+
+<div class="carte verre agent"><h3>4. Regroupement (F03) <span class="pilule p-faible">sans IA</span></h3><dl>
+<dt>Rôle</dt><dd>Réunit en un seul <b>événement</b> les articles qui racontent le même fait (pas de doublons).</dd>
+<dt>Règle</dt><dd>Notamment : titres semblables à {{ p.seuil_similarite_titre }} % ou plus, au moins {{ p.mots_communs_min }} mots importants communs, dans une fenêtre de {{ p.fenetre_regroupement_heures }} h.</dd></dl></div>
+
+<div class="carte verre agent"><h3>5. Tendances <span class="pilule p-faible">sans IA</span></h3><dl>
+<dt>Rôle</dt><dd>Mesure si un sujet monte : compte les articles sur {% for m in p.tendance_fenetres_minutes %}{{ (m ~ 'min') | fenetre }}{% if not loop.last %} / {% endif %}{% endfor %} et compare à la période précédente.</dd>
+<dt>Règle</dt><dd>ratio ≥ {{ p.tendance_ratio_forte_hausse }} : forte hausse · ≥ {{ p.tendance_ratio_hausse }} : en hausse · ≤ {{ p.tendance_ratio_baisse }} : en baisse.</dd></dl></div>
+
+<div class="carte verre agent"><h3>6. Score (F04) <span class="pilule p-faible">sans IA</span></h3><dl>
+<dt>Rôle</dt><dd>Note de 0 à 100, explicable critère par critère (survole un score pour voir le détail).</dd>
+<dt>Poids</dt><dd>{% for k, v in p.poids_score.items() %}{{ CRITERES.get(k, k) }} {{ v }}{% if not loop.last %} · {% endif %}{% endfor %}</dd></dl></div>
+
+<div class="carte verre agent"><h3>7. Vérification et contexte <span class="pilule p-acc">IA possible</span></h3><dl>
+<dt>Rôle</dt><dd>Donne un statut honnête : source officielle ? plusieurs médias ? propos rapportés ? conditionnel ?</dd>
+<dt>Règle</dt><dd>Statut calculé d'après les sources (voir lexique). L'IA peut seulement rédiger un court résumé, marqué « à vérifier ».</dd></dl></div>
+
+<div class="carte verre agent"><h3>8. Synthèse (F06–F08) <span class="pilule p-acc">IA possible</span></h3><dl>
+<dt>Produit</dt><dd>Briefing {{ p.heure_briefing }}, points toutes les {{ p.intervalle_point_heures }} h ({{ p.plage_points }}), synthèse {{ p.heure_synthese_soir }}. C'est ta revue de presse.</dd>
+<dt>Règle</dt><dd>Chaque ligne porte sa source et son lien ; pas de point s'il n'y a rien de nouveau{{ '' if not p.point_si_rien else ' (désactivé par ton réglage)' }}.</dd></dl></div>
+
+<div class="carte verre agent"><h3>Exécuteur <span class="pilule p-faible">sans IA</span></h3><dl>
+<dt>Rôle</dt><dd>Le seul qui agit : envoie, archive, photographie, sauvegarde.</dd>
+<dt>Alertes</dt><dd>Score ≥ {{ p.seuil_critique }} ; <b>jamais deux fois</b> ; mise à jour seulement si +{{ p.alerte_delta_score }} points ou +{{ p.alerte_delta_sources }} sources (max {{ p.alerte_max_mises_a_jour }}).</dd>
+<dt>Journal</dt><dd>Photo du top {{ p.journal_taille_top }} à {{ p.heure_journal }} ; sauvegarde de la base chaque nuit (VPS).</dd>
+<dt>Budget</dt><dd>IA plafonnée à {{ '%.0f' | format(p.budget_mensuel_eur) }} €/mois, alerte à {{ p.budget_alerte_pct }} % ; au plafond, retour aux règles seules.</dd></dl></div>
+</section>
+
+<div class="rangee">
+<section class="carte verre" aria-label="Échelle des scores">
+<h2>Échelle des scores</h2>
+<table>{% for plage, nom, cls in echelle %}<tr><td style="width:80px"><span class="pilule score p-{{ cls }}">{{ plage }}</span></td><td>{{ nom }}</td></tr>{% endfor %}</table>
+</section>
+<section class="carte verre" aria-label="Tendances">
+<h2>Tendances</h2>
+<table>{% for k, v in TENDANCES_TXT.items() %}<tr><td style="width:96px"><span class="pilule p-cyan">{{ k }}</span></td><td>{{ v }}</td></tr>{% endfor %}</table>
+</section>
+</div>
+
+<section class="carte verre" aria-label="Statuts de vérification">
+<h2>Statuts de vérification</h2>
+<table>{% for k, v in VERIFICATION.items() %}<tr><td style="width:210px"><span class="pilule {{ verif_classe(k) }}">{{ k }}</span></td><td>{{ v }}</td></tr>{% endfor %}</table>
+</section>
+
+<section class="carte verre" aria-label="Sources de la revue de presse">
+<h2>Ta revue de presse : {{ sources | selectattr('actif') | list | length }} source(s) active(s)</h2>
+<div style="overflow-x:auto"><table>
+<tr><th>Source</th><th>Type</th><th>Niveau</th><th>Zone</th><th>Fiabilité</th><th>Fréquence</th><th>Dernière lecture</th><th>État</th></tr>
+{% for s in sources %}<tr{% if not s.actif %} class="doux"{% endif %}>
+<td>{{ s.nom }}{% if s.note %}<div class="doux">{{ s.note }}</div>{% endif %}</td>
+<td>{{ {'institutionnel': 'institution', 'media': 'média', 'reseau_social': 'réseau social', 'complement': 'complément'}.get(s.categorie, s.categorie) }}</td>
+<td>{{ s.niveau }}</td><td>{{ 'Lyon/AURA' if s.zone == 'regional' else 'national' }}</td>
+<td>{{ s.fiabilite }}/5</td><td>{{ s.frequence_minutes }} min</td><td>{{ s.derniere_collecte | paris }}</td>
+<td>{% if not s.actif %}désactivée{% elif s.derniere_erreur %}<span style="color:var(--rose)">erreur</span>{% else %}ok{% endif %}</td></tr>{% endfor %}
+</table></div>
+<div class="doux" style="margin-top:4px">Niveaux du cahier : 1 institutionnel, 2 médias, 3 réseaux sociaux, 4 compléments. Fiabilité indicative, réglée par toi.</div>
+</section>
+{% endblock %}

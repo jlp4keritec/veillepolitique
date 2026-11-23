@@ -154,6 +154,7 @@ COLONNES_AJOUTEES = [
     ("articles", "acteurs_titre", "TEXT NOT NULL DEFAULT '[]'"),
     ("evenements", "acteurs_titre", "TEXT NOT NULL DEFAULT '[]'"),
     ("notifications", "message_envoye", "TEXT"),
+    ("articles", "classif_details", "TEXT"),  # v0.7.0 : mots trouves (bulles d'aide)
 ]
 
 

@@ -1,8 +1,9 @@
 {# une ligne d'evenement : variable `v` #}
+{% import "_bulles.html" as bulle with context %}
 <tr>
-<td style="width:44px"><span class="pilule score p-{{ score_classe(v.score) }}">{{ v.score }}</span></td>
+<td style="width:44px">{{ bulle.score(v.score, v.score_details) }}</td>
 <td><a href="/evenement/{{ v.id }}">{{ v.titre }}</a>
-<div class="ligne doux" style="margin-top:3px">{{ v.theme or 'sans thème' }} · {{ 'Lyon/AURA' if v.zone == 'regional' else 'national' }} · {{ v.nb_sources }} source(s)
-<span class="pilule {{ verif_classe(v.verification) }}">{{ v.verification }}</span>
-{% if v.tendance in ('forte hausse', 'en hausse') %}<span class="pilule p-cyan">{{ v.tendance }}</span>{% endif %}</div></td>
+<div class="ligne doux" style="margin-top:3px">{{ bulle.classement(v.id, v.theme, v.zone) }} · {{ v.nb_sources }} source(s)
+{{ bulle.verif(v.verification, (v.verification_details | fromjson).get('raison')) }}
+{% if v.tendance in ('forte hausse', 'en hausse') %}{{ bulle.tendance(v.tendance, v.tendance_details) }}{% endif %}</div></td>
 </tr>

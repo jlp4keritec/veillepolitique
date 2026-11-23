@@ -1,5 +1,21 @@
 # CHANGELOG - VEILLE
 
+## [0.7.0] - 2026-11-23 - Bulles d'aide et page "Comment ca marche" (F04, F10)
+
+### Ajoute
+- Bulles d'aide (survol a la souris, toucher sur telephone) sur l'accueil, le Journal et la fiche evenement :
+  score (niveau + 6 criteres : points, maximum, raison), verification (sens du statut + raison),
+  tendance (calcul mesure par fenetre), theme/zone/type (mots-cles trouves, part de l'IA), rang du Journal.
+  Seuils affiches = reglages en vigueur.
+- Page "Comment ca marche" (/fonctionnement, menu) : parcours d'une information, fiche par agent
+  (role, entrees, sorties, IA ou non, qui decide, reglages en vigueur), echelle des scores, tendances,
+  statuts de verification, revue de presse (sources : type, niveau, zone, fiabilite, frequence, etat).
+  Generee en direct depuis la base.
+- Classement : les mots-cles trouves (titre / resume), la raison de la zone et du type sont enregistres
+  (colonne articles.classif_details). Articles anterieurs : "mots non conserves".
+- Journal : chaque photo garde aussi le detail du score, la raison de verification et le calcul de tendance.
+- 6 tests (102 au total).
+
 ## [0.6.0] - 2026-11-23 - Journal quotidien (F10)
 
 ### Ajoute

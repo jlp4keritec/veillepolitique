@@ -1,9 +1,11 @@
 {% extends "base.html" %}
+{% import "_bulles.html" as bulle with context %}
 {% block contenu %}
 <section class="carte verre">
-<div class="ligne"><span class="pilule score p-{{ score_classe(e.score) }}">{{ e.score }}/100</span><span class="doux">{{ niveau(e.score) }}</span>
-<span class="pilule {{ verif_classe(e.verification) }}">{{ e.verification }}</span>
-<span class="pilule p-cyan">{{ e.tendance }}</span></div>
+<div class="ligne">{{ bulle.score(e.score, e.score_details) }}<span class="doux">/100 · {{ niveau(e.score) }}</span>
+{{ bulle.verif(e.verification, verif.raison) }}
+{{ bulle.tendance(e.tendance, tendance) }}
+<span class="doux">{{ bulle.classement(e.id, e.theme, e.zone) }}</span></div>
 <h1 style="font:600 17px var(--titre);margin:8px 0 4px">{{ e.titre }}</h1>
 <div class="doux">{{ e.nb_articles }} article(s) · {{ e.nb_sources }} source(s) · du {{ e.premier_article_le | paris }} au {{ e.dernier_article_le | paris }}</div>
 <div class="ligne" style="margin-top:6px">{% for t in themes %}<span class="pilule p-acc">{{ t }}</span>{% endfor %}

@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% import "_bulles.html" as bulle with context %}
 {% block contenu %}
 <section class="carte verre">
 <form class="filtres" method="get" style="align-items:center">
@@ -28,12 +29,14 @@
 <section class="carte verre" style="flex:2 1 460px" aria-label="Top du jour">
 <h2>Top {{ top | length }} du jour</h2>
 {% if top %}<table>{% for v in top %}
-<tr><td style="width:44px"><span class="pilule score p-{{ score_classe(v.score) }}">{{ v.score }}</span></td>
+<tr><td style="width:62px;white-space:nowrap"><span class="aide" tabindex="0" aria-label="Rang {{ v.rang }}, explication"><span class="doux souligne">{{ v.rang }}.</span>
+<span class="bulle" role="tooltip"><b>Rang {{ v.rang }}</b> sur {{ chiffres.evenements_du_jour if chiffres.evenements_du_jour is defined else '?' }} événement(s) ayant reçu au moins un article ce jour-là.<br>
+Classés par score, puis par nombre de sources. Top de {{ p.journal_taille_top }} (réglable).</span></span>
+{{ bulle.score(v.score, v.details, v.raisons) }}</td>
 <td><a href="/evenement/{{ v.id }}">{{ v.titre }}</a>
-<div class="ligne doux" style="margin-top:3px">{{ v.theme or 'sans thème' }} · {{ 'Lyon/AURA' if v.zone == 'regional' else 'national' }} · {{ v.nb_sources }} source(s)
-<span class="pilule {{ verif_classe(v.verification) }}">{{ v.verification }}</span>
-{% if v.tendance in ('forte hausse', 'en hausse') %}<span class="pilule p-cyan">{{ v.tendance }}</span>{% endif %}</div>
-{% if v.raisons %}<div class="doux" style="margin-top:2px">Pourquoi : {{ v.raisons | join(' ; ') }}</div>{% endif %}
+<div class="ligne doux" style="margin-top:3px">{{ bulle.classement(v.id, v.theme, v.zone) }} · {{ v.nb_sources }} source(s)
+{{ bulle.verif(v.verification, v.verif_raison) }}
+{% if v.tendance in ('forte hausse', 'en hausse') %}{{ bulle.tendance(v.tendance, v.tendance_details) }}{% endif %}</div>
 {% if v.sources %}<div style="margin-top:2px">{% for s in v.sources %}<a href="{{ s.url }}" target="_blank" rel="noopener noreferrer">{{ s.nom }}</a>{% if not loop.last %} · {% endif %}{% endfor %}</div>{% endif %}
 </td></tr>{% endfor %}</table>
 {% else %}<div class="doux">Aucun événement ce jour-là.</div>{% endif %}
