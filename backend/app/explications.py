@@ -46,6 +46,7 @@ def classement(conn: sqlite3.Connection, evt_id: int, theme: str | None) -> dict
                         (evt_id,)).fetchall()
     mots_titre, mots_resume, zones, types, notes = [], [], [], [], []
     ia = conserve = 0
+    avis = {"accord": 0, "divergent": 0, "complete": 0, "propositions": [], "modeles": []}
     for r in rows:
         if r["classif_details"]:
             conserve += 1
@@ -59,10 +60,17 @@ def classement(conn: sqlite3.Connection, evt_id: int, theme: str | None) -> dict
                 zones.append(d["zone"])
             if d.get("type"):
                 types.append(d["type"])
+            a_ia = d.get("ia") or {}
+            if a_ia.get("theme_avis") in avis:
+                avis[a_ia["theme_avis"]] += 1
+                avis["modeles"].append(a_ia.get("modele") or "?")
+                if a_ia["theme_avis"] == "divergent":
+                    avis["propositions"].append(a_ia.get("theme"))
         if r["classif_par"] == "regles+ia" and any("theme" in h.get("champs", []) for h in json.loads(r["historique"] or "[]")
                                                     if h.get("par") == "ia"):
             ia += 1
     uniq = lambda xs: list(dict.fromkeys(xs))[:6]  # noqa: E731
     return {"articles": len(rows), "conserves": conserve, "mots_titre": uniq(mots_titre),
             "mots_resume": uniq(mots_resume), "notes": uniq(notes), "zones": uniq(zones), "types": uniq(types),
-            "ia": ia}
+            "ia": ia, "avis": {**avis, "propositions": uniq([x for x in avis["propositions"] if x]),
+                               "modeles": uniq(avis["modeles"])}}

@@ -136,6 +136,40 @@ CREATE TABLE IF NOT EXISTS etat (
     valeur TEXT NOT NULL
 );
 
+-- Historique des changements de reglages (F11, v0.8.0) : jamais efface
+CREATE TABLE IF NOT EXISTS historique_reglages (
+    id        INTEGER PRIMARY KEY AUTOINCREMENT,
+    le        TEXT NOT NULL,
+    cle       TEXT NOT NULL,
+    ancienne  TEXT,                -- JSON (NULL = valeur par defaut jamais modifiee)
+    nouvelle  TEXT NOT NULL,       -- JSON
+    origine   TEXT NOT NULL        -- page, api, telegram
+);
+
+-- Double avis IA / regles (v0.9.0) : chaque comparaison est mesuree
+CREATE TABLE IF NOT EXISTS avis_ia (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    le          TEXT NOT NULL,
+    article_id  INTEGER,
+    champ       TEXT NOT NULL,      -- theme, type_evenement
+    regles      TEXT,
+    ia          TEXT,
+    accord      INTEGER NOT NULL CHECK (accord IN (0,1)),
+    modele      TEXT,
+    origine     TEXT NOT NULL DEFAULT 'cycle'   -- cycle ou banc
+);
+
+-- Banc d'essai IA (v0.9.0) : mesures, jamais de modification des articles
+CREATE TABLE IF NOT EXISTS banc_essai (
+    id        INTEGER PRIMARY KEY AUTOINCREMENT,
+    lance_le  TEXT NOT NULL,
+    fini_le   TEXT,
+    statut    TEXT NOT NULL,          -- en cours, termine, echec
+    n         INTEGER NOT NULL,
+    modeles   TEXT NOT NULL,          -- JSON ["local:ministral-3:3b", ...]
+    resultats TEXT                    -- JSON par modele + accord entre modeles
+);
+
 -- Journal quotidien (F10, v0.6.0) : photo du top de chaque journee, jamais modifiee
 CREATE TABLE IF NOT EXISTS journal_quotidien (
     jour       TEXT PRIMARY KEY,          -- AAAA-MM-JJ (heure de Paris)
@@ -155,6 +189,7 @@ COLONNES_AJOUTEES = [
     ("evenements", "acteurs_titre", "TEXT NOT NULL DEFAULT '[]'"),
     ("notifications", "message_envoye", "TEXT"),
     ("articles", "classif_details", "TEXT"),  # v0.7.0 : mots trouves (bulles d'aide)
+    ("couts", "fournisseur", "TEXT"),  # v0.9.0 : anthropic, openrouter, local
 ]
 
 

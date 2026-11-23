@@ -34,6 +34,15 @@ Dépannage : `-SkipNginx`, `-SkipCertbot`.
 Mêmes étapes avec `~/veille/deploy-veille.command` (`--init`, `--copier-base`), config dans
 `~/veille/deploy-config.json`.
 
+## IA (facultatif)
+- **IA locale (bandit)** : page Réglages > Modèle IA > adresse `http://10.10.0.2:11434`, puis **Tester**.
+  Le VPN doit être actif sur bandit (tunnel WireGuard `kikkoai-wg0`) et Ollama démarré.
+- **Clés Claude / OpenRouter** : jamais dans une page ni dans le chat. Sur le VPS, sans l'afficher :
+```
+ssh -t -i C:\mailou\id-ed25519 ubuntu@151.80.232.214 'cd ~/veille/backend && read -rsp "Cle : " P && printf %s "$P" | .venv/bin/python scripts/definir_env.py ANTHROPIC_API_KEY && cd ~/veille && (pm2 delete veille; VEILLE_PORT=5727 pm2 start ecosystem.config.cjs && pm2 save)'
+```
+(remplacer `ANTHROPIC_API_KEY` par `OPENROUTER_API_KEY` pour OpenRouter.)
+
 ## E-mail (facultatif)
 Sur le VPS, dans `~/veille/backend/.env` : `SMTP_HOTE=smtp.gmail.com`, `SMTP_PORT=587`,
 `SMTP_UTILISATEUR`, `EMAIL_DESTINATAIRE`. Le mot de passe d'application Google se pose sans

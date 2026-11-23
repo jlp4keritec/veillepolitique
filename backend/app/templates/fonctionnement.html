@@ -49,7 +49,9 @@ Un cycle complet toutes les {{ p.intervalle_cycle_minutes }} min ; l'horloge (br
 <div class="carte verre agent"><h3>2–3. Tri et classement (F02) <span class="pilule p-acc">IA possible</span></h3><dl>
 <dt>Tri</dt><dd>Écarte les titres trop courts (&lt; {{ p.titre_mots_min }} mots) et les mots exclus ({{ p.mots_exclus | length }}). Garde ce qui touche un thème ou un acteur suivi.</dd>
 <dt>Classement</dt><dd>Thème ({{ stats.themes | length }} thèmes), zone (Lyon/AURA si source régionale ou mot régional), acteurs, type (vote, décision…), par <b>tes mots-clés</b>.</dd>
-<dt>IA</dt><dd>Peut proposer un classement plus fin (max {{ p.ia_max_articles_par_cycle }} articles par cycle) ; refusé s'il sort de tes listes.</dd></dl></div>
+<dt>IA</dt><dd>Peut proposer un classement plus fin (max {{ p.ia_max_articles_par_cycle }} articles par cycle) ; refusé s'il sort de tes listes.
+<b>Double avis</b> : si l'IA et tes règles sont d'accord, c'est retenu ; sinon tes règles tranchent (« avis divergents »).</dd>
+<dt>Modèles</dt><dd>{{ p.ia_routage.get('classification', []) | join(' → ') }} → règles seules (relais automatique).</dd></dl></div>
 
 <div class="carte verre agent"><h3>4. Regroupement (F03) <span class="pilule p-faible">sans IA</span></h3><dl>
 <dt>Rôle</dt><dd>Réunit en un seul <b>événement</b> les articles qui racontent le même fait (pas de doublons).</dd>
@@ -75,7 +77,7 @@ Un cycle complet toutes les {{ p.intervalle_cycle_minutes }} min ; l'horloge (br
 <dt>Rôle</dt><dd>Le seul qui agit : envoie, archive, photographie, sauvegarde.</dd>
 <dt>Alertes</dt><dd>Score ≥ {{ p.seuil_critique }} ; <b>jamais deux fois</b> ; mise à jour seulement si +{{ p.alerte_delta_score }} points ou +{{ p.alerte_delta_sources }} sources (max {{ p.alerte_max_mises_a_jour }}).</dd>
 <dt>Journal</dt><dd>Photo du top {{ p.journal_taille_top }} à {{ p.heure_journal }} ; sauvegarde de la base chaque nuit (VPS).</dd>
-<dt>Budget</dt><dd>IA plafonnée à {{ '%.0f' | format(p.budget_mensuel_eur) }} €/mois, alerte à {{ p.budget_alerte_pct }} % ; au plafond, retour aux règles seules.</dd></dl></div>
+<dt>Budget</dt><dd>IA en ligne plafonnée à {{ '%.0f' | format(p.budget_mensuel_eur) }} €/mois (IA locale gratuite), veille X {{ '%.0f' | format(p.budget_x_eur) }} € ; alerte à {{ p.budget_alerte_pct }} % ; au plafond, retour aux règles seules.</dd></dl></div>
 </section>
 
 <div class="rangee">

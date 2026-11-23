@@ -104,8 +104,11 @@ def test_ecoute_telegram(base, conn):
     c.close()
 
 
-def test_api(base):
+def test_api(base, monkeypatch):
+    from app import reglages
     from app.main import app
+    vrai = reglages.adresse_publique
+    monkeypatch.setattr(reglages, "adresse_publique", lambda url, resoudre=None: vrai(url, lambda h: {"93.184.216.34"}))
     with TestClient(app) as client:
         assert client.get("/api/v1/health").json()["planificateur"] is False
         r = client.post("/api/v1/sources", json={"nom": "Nouvelle", "url": "https://n.test/rss", "type": "rss",
@@ -116,6 +119,10 @@ def test_api(base):
         assert client.post("/api/v1/sources", json={"nom": "Nouvelle", "url": "https://n.test/rss", "type": "rss",
                                                     "categorie": "media", "niveau": 2, "zone": "national",
                                                     "frequence_minutes": 15}).status_code == 409
+        monkeypatch.setattr(reglages, "adresse_publique", lambda url, resoudre=None: vrai(url, lambda h: {"127.0.0.1"}))
+        assert client.post("/api/v1/sources", json={"nom": "Piege", "url": "https://interne.test/rss", "type": "rss",
+                                                    "categorie": "media", "niveau": 2, "zone": "national",
+                                                    "frequence_minutes": 15}).status_code == 422
         assert client.patch(f"/api/v1/sources/{sid}", json={"actif": 0}).status_code == 200
         assert client.put("/api/v1/parametres/seuil_critique", json={"valeur": 80}).json()["valeur"] == 80
         assert client.put("/api/v1/parametres/seuil_critique", json={"valeur": "abc"}).status_code == 422

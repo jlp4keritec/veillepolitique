@@ -50,7 +50,7 @@ def test_page_fonctionnement(client, conn):  # noqa: F811
     assert r.status_code == 200
     for txt in ("Les agents proposent, tes règles décident", "Orchestrateur", "Collecte (F01)", "Regroupement (F03)",
                 "Score (F04)", "Exécuteur", "jamais deux fois", "Statuts de vérification", "Ta revue de presse",
-                "aucune clé IA", "S0", 'href="/fonctionnement"'):
+                "inactive", "S0", 'href="/fonctionnement"', "Double avis"):
         assert txt in r.text, txt
 
 
@@ -63,3 +63,12 @@ def test_bulles_echappent_le_contenu(client, conn):  # noqa: F811
     for url in ("/", "/journal"):
         r = client.get(url)
         assert "<script>alert(1)" not in r.text and 'onerror="alert(2)"' not in r.text, url
+
+
+def test_bulle_avis_divergents(client, conn):  # noqa: F811
+    conn.execute("UPDATE articles SET classif_details = ? WHERE evenement_id IS NOT NULL",
+                 (json.dumps({"themes": {}, "zone": "x", "ia": {"modele": "local:ministral-3:3b", "theme": "Défense",
+                                                                 "theme_avis": "divergent"}}),))
+    conn.commit()
+    r = client.get("/")
+    assert "avis divergents" in r.text and "tes règles ont tranché" in r.text and "Défense" in r.text

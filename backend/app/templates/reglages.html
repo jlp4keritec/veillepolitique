@@ -1,0 +1,292 @@
+{% extends "base.html" %}
+{% block contenu %}
+<style>
+.champs{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:6px 14px}
+.champ{display:flex;flex-direction:column;gap:2px}
+.champ label{font-size:12px;color:var(--doux)}
+.champ input[type=text],.champ input[type=number]{font:inherit;height:30px;padding:0 8px;border-radius:8px;background:rgba(255,255,255,.08);
+border:1px solid rgba(255,255,255,.18);color:var(--txt);max-width:220px}
+.champ .case{display:flex;align-items:center;gap:6px;height:30px}
+.poids{display:grid;grid-template-columns:minmax(170px,1fr) 2fr 56px;gap:4px 10px;align-items:center}
+.poids input[type=range]{width:100%;accent-color:#818cf8}
+.poids input[type=number]{width:56px;font:inherit;height:28px;padding:0 6px;border-radius:8px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18);color:var(--txt)}
+.msg{padding:8px 10px}.msg.ok{border-color:rgba(110,231,183,.5)}.msg.ko{border-color:rgba(253,164,175,.6)}
+.monte{color:var(--vert)}.descend{color:var(--rose)}
+.boutons{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;align-items:center}
+.bouton.second{background:rgba(255,255,255,.12);color:var(--txt);border:1px solid rgba(255,255,255,.22)}
+form.inline{display:inline}
+textarea.zone{font:inherit;width:100%;padding:6px 8px;border-radius:8px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18);color:var(--txt);resize:vertical}
+select.petit,input.petit{font:inherit;height:28px;padding:0 6px;border-radius:8px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18);color:var(--txt)}
+select.petit option{background:#141a33}
+</style>
+
+<nav class="carte verre ligne" aria-label="Onglets des réglages" style="padding:6px 8px">
+{% for k, nom in onglets.items() %}<a class="pilule {{ 'p-acc' if k == onglet else 'p-faible' }}" style="font-size:12px;padding:3px 10px" href="/reglages?onglet={{ k }}"{% if k == onglet %} aria-current="page"{% endif %}>{{ nom }}</a>{% endfor %}
+<span class="doux" style="margin-left:auto">Chaque changement est vérifié, historisé et annulable.</span>
+</nav>
+
+{% if message %}<div class="carte verre msg ok" role="status">✓ {{ message }}</div>{% endif %}
+{% if erreur %}<div class="carte verre msg ko" role="alert">Rien n'a été enregistré : {{ erreur }}</div>{% endif %}
+
+{% if onglet == 'score' %}
+<section class="carte verre" id="poids">
+<h2>Pondération du score</h2>
+<div class="doux" style="margin-bottom:6px">Le score sur 100 est la somme de 6 critères mesurés. Tu choisis le poids de chacun ; le total doit faire 100.
+<b>Aperçu</b> recalcule le top des 24 h avec tes nouveaux poids, sans rien enregistrer.</div>
+<form method="post" action="/reglages/poids">
+<input type="hidden" name="csrf" value="{{ csrf }}">
+<div class="poids">
+{% for k, v in poids.items() %}
+<label for="poids_{{ k }}">{{ CRITERES.get(k, k) }} <span class="doux">(défaut {{ defauts.poids_score[0][k] }})</span></label>
+<input type="range" min="0" max="60" step="1" value="{{ v }}" aria-label="{{ CRITERES.get(k, k) }}" data-lie="poids_{{ k }}">
+<input type="number" min="0" max="100" step="1" id="poids_{{ k }}" name="poids_{{ k }}" value="{{ v }}">
+{% endfor %}
+</div>
+<div class="boutons">
+<span>Total : <b id="total" style="color:{{ 'var(--vert)' if total == 100 else 'var(--rose)' }}">{{ total }}</b> / 100</span>
+<button class="bouton second" name="action" value="apercu">Aperçu</button>
+<button class="bouton" name="action" value="enregistrer" id="enreg-poids">Enregistrer</button>
+</div>
+</form>
+<form method="post" action="/reglages/defaut/poids_score" class="inline"><input type="hidden" name="csrf" value="{{ csrf }}">
+<button class="bouton second" style="margin-top:6px">Revenir aux poids par défaut</button></form>
+{% if apercu is not none %}
+<h2 style="margin-top:12px">Aperçu : top 24 h avec ces poids</h2>
+{% if apercu %}<table>
+<tr><th>Rang</th><th>Événement</th><th>Score actuel</th><th>Avec ces poids</th></tr>
+{% for x in apercu %}<tr><td style="white-space:nowrap">{{ x.rang }}{% if x.rang != x.rang_avant %} <span class="{{ 'monte' if x.rang < x.rang_avant else 'descend' }}">({{ '↑' if x.rang < x.rang_avant else '↓' }} {{ x.rang_avant }})</span>{% endif %}</td>
+<td><a href="/evenement/{{ x.id }}">{{ x.titre }}</a></td>
+<td><span class="pilule score p-{{ score_classe(x.avant) }}">{{ x.avant }}</span></td>
+<td><span class="pilule score p-{{ score_classe(x.apres) }}">{{ x.apres }}</span>
+{% if x.delta %}<span class="{{ 'monte' if x.delta > 0 else 'descend' }}">{{ '%+d' | format(x.delta) }}</span>{% endif %}
+{% if x.alerte_apres and not x.alerte_avant %}<span class="pilule p-crit">déclencherait une alerte</span>{% endif %}</td></tr>{% endfor %}
+</table>
+<div class="doux" style="margin-top:4px">Les deux colonnes sont calculées maintenant, avec les mêmes données : seul l'effet des poids apparaît.
+Si tu enregistres, les événements des 48 dernières heures sont recalculés (des alertes peuvent partir au prochain cycle) ; les photos du Journal ne changent pas.</div>
+{% else %}<div class="doux">Aucun événement sur les dernières 24 h pour comparer.</div>{% endif %}
+{% endif %}
+</section>
+
+{% for nom, s in sections.items() %}
+<section class="carte verre" id="{{ nom }}">
+<h2>{{ s.titre }}</h2>
+<form method="post" action="/reglages/section/{{ nom }}">
+<input type="hidden" name="csrf" value="{{ csrf }}">
+<div class="champs">
+{% for cle, lib, typ, aide in s.champs %}
+<div class="champ">
+{% if typ == 'oui_non' %}
+<label class="case" style="color:var(--txt);font-size:13px"><input type="checkbox" name="{{ cle }}" {% if valeurs[cle] %}checked{% endif %}> {{ lib }}</label>
+{% else %}
+<label for="{{ cle }}">{{ lib }}</label>
+<input id="{{ cle }}" name="{{ cle }}" type="{{ 'number' if typ == 'nombre' else 'text' }}" {% if typ == 'nombre' %}step="any" min="0"{% endif %}
+ {% if typ == 'heure' %}pattern="[0-2][0-9]:[0-5][0-9]" placeholder="HH:MM"{% endif %} value="{{ valeurs[cle] }}" required>
+{% endif %}
+<span class="doux">{{ aide }}{% if lisible(valeurs[cle]) != lisible(defauts[cle][0]) %} · défaut : {{ lisible(defauts[cle][0]) }}{% endif %}</span>
+</div>
+{% endfor %}
+</div>
+<div class="boutons"><button class="bouton">Enregistrer « {{ s.titre }} »</button></div>
+</form>
+</section>
+{% endfor %}
+
+{% endif %}
+
+{% if onglet == 'modele' %}
+<section class="carte verre">
+<h2>État de l'IA</h2>
+<table>
+<tr><td style="width:190px">IA locale (Ollama)</td><td>{% if valeurs.ia_local_url %}<b>{{ valeurs.ia_local_url }}</b>
+{% if ia.local_pause %}<span class="pilule p-crit">injoignable · nouvel essai après {{ ia.local_pause | paris('%H:%M') }}</span>{% else %}<span class="pilule p-info">utilisable</span>{% endif %}
+{% else %}<span class="doux">pas d'adresse : renseigne-la ci-dessous (bandit via le VPN : http://10.10.0.2:11434)</span>{% endif %} · gratuite</td></tr>
+<tr><td>Claude (Anthropic)</td><td>{% if ia.cle_anthropic %}<span class="pilule p-info">clé présente</span>{% else %}<span class="doux">pas de clé (ANTHROPIC_API_KEY dans le .env du serveur)</span>{% endif %}</td></tr>
+<tr><td>OpenRouter</td><td>{% if ia.cle_openrouter %}<span class="pilule p-info">clé présente</span>{% else %}<span class="doux">pas de clé (OPENROUTER_API_KEY dans le .env du serveur)</span>{% endif %}</td></tr>
+<tr><td>En ce moment</td><td>{{ 'IA disponible' if ia.disponible[0] else 'règles seules : ' ~ ia.disponible[1] }}</td></tr>
+</table>
+<div class="doux" style="margin-top:4px">Les clés ne s'affichent jamais ici et ne passent jamais par une page : elles se posent uniquement dans le fichier .env du serveur.</div>
+</section>
+
+<section class="carte verre">
+<h2>Quel modèle pour quel travail</h2>
+<div class="doux" style="margin-bottom:6px">Pour chaque agent, les modèles sont essayés <b>dans l'ordre</b> : si le premier ne répond pas (bandit éteint, budget atteint, pas de clé), on passe au suivant ; si aucun ne répond, <b>les règles seules</b> s'appliquent.
+Format : <code>local:ministral-3:3b</code>, <code>anthropic:</code> (modèle Claude par défaut) ou <code>anthropic:claude-haiku-5-5</code>, <code>openrouter:mistralai/…</code>, séparés par des virgules.</div>
+<form method="post" action="/reglages/ia"><input type="hidden" name="csrf" value="{{ csrf }}">
+<div class="champs" style="grid-template-columns:repeat(auto-fill,minmax(320px,1fr))">
+{% for agent, nom in ia.agents.items() %}<div class="champ"><label for="r_{{ agent }}"><b style="color:var(--txt)">{{ nom }}</b></label>
+<input type="text" id="r_{{ agent }}" name="routage_{{ agent }}" value="{{ (valeurs.ia_routage.get(agent) or []) | join(', ') }}" style="max-width:none"></div>{% endfor %}
+<div class="champ"><label for="ia_local_url">Adresse de l'IA locale</label><input type="text" id="ia_local_url" name="ia_local_url" value="{{ valeurs.ia_local_url }}" placeholder="http://10.10.0.2:11434"></div>
+<div class="champ"><label for="ia_local_timeout_s">Délai max. de l'IA locale (s)</label><input type="number" id="ia_local_timeout_s" name="ia_local_timeout_s" value="{{ valeurs.ia_local_timeout_s }}" min="10" max="600"></div>
+<div class="champ"><label class="case" style="color:var(--txt);font-size:13px"><input type="checkbox" name="ia_active" {% if valeurs.ia_active %}checked{% endif %}> Utiliser l'IA</label><span class="doux">Décoché : règles seules partout.</span></div>
+</div>
+<div class="boutons"><button class="bouton">Enregistrer</button></div>
+</form>
+</section>
+
+<div class="rangee">
+<section class="carte verre">
+<h2>Tester un modèle</h2>
+<form method="post" action="/reglages/ia/essai"><input type="hidden" name="csrf" value="{{ csrf }}">
+<div class="ligne">
+<select name="fournisseur" class="petit" aria-label="Fournisseur">{% for k, nom in ia.fournisseurs.items() %}<option value="{{ k }}" {% if (essai and essai.fournisseur == k) or (modeles and modeles.fournisseur == k) %}selected{% endif %}>{{ nom }}</option>{% endfor %}</select>
+<input type="text" name="modele" class="petit" placeholder="modèle (ex. ministral-3:3b)" value="{{ essai.modele if essai else '' }}" style="width:220px" aria-label="Modèle">
+<button class="bouton second" name="action" value="tester">Tester</button>
+<button class="bouton second" name="action" value="lister">Lister les modèles</button></div>
+</form>
+{% if essai %}<div style="margin-top:6px">{% if essai.ok %}<span class="pilule p-info">OK</span>{% else %}<span class="pilule p-crit">échec</span>{% endif %}
+{{ essai.fournisseur }}{% if essai.modele %} · {{ essai.modele }}{% endif %} · {{ essai.message }}{% if essai.duree_s is defined %} · {{ essai.duree_s }} s{% endif %}</div>{% endif %}
+{% if modeles %}<div style="margin-top:6px">{% if modeles.liste is not none %}<b>{{ modeles.liste | length }} modèle(s)</b> :
+<div class="doux" style="max-height:160px;overflow:auto">{{ modeles.liste | join(' · ') }}</div>{% else %}<span class="pilule p-crit">{{ modeles.erreur }}</span>{% endif %}</div>{% endif %}
+<div class="doux" style="margin-top:4px">Le test envoie un message très court et vérifie que la réponse est un JSON valide. En ligne, il coûte quelques fractions de centime.</div>
+</section>
+<section class="carte verre">
+<h2>Double avis IA / règles (30 jours)</h2>
+{% if ia.accord %}<table><tr><th>Modèle</th><th>Thème</th><th>Type</th></tr>
+{% for m, ch in ia.accord.items() %}<tr><td>{{ m }}</td>
+{% for c in ('theme', 'type_evenement') %}<td>{% if ch.get(c) %}<b>{{ ch[c].pct }} %</b> d'accord <span class="doux">({{ ch[c].accord }}/{{ ch[c].n }})</span>{% else %}<span class="doux">—</span>{% endif %}</td>{% endfor %}</tr>{% endfor %}
+</table>{% else %}<div class="doux">Pas encore de mesure : elle se remplit dès que l'IA classe des articles.</div>{% endif %}
+<div class="doux" style="margin-top:4px">Quand l'IA et tes règles sont d'accord, la proposition est retenue ; quand elles divergent, <b>tes règles tranchent</b> et l'article est marqué « avis divergents ».</div>
+<h2 style="margin-top:10px">Derniers appels</h2>
+{% if ia.derniers %}<table>{% for c in ia.derniers %}<tr><td class="doux">{{ c.horodatage | paris }}</td><td>{{ c.agent }}</td><td>{{ c.fournisseur or 'anthropic' }} · {{ c.modele }}</td><td>{{ '%.4f' | format(c.cout_eur) }} €</td></tr>{% endfor %}</table>
+{% else %}<div class="doux">Aucun appel pour l'instant.</div>{% endif %}
+</section>
+</div>
+
+<section class="carte verre" id="banc">
+<h2>Banc d'essai : confronter les IA</h2>
+<div class="doux" style="margin-bottom:6px">Sur les articles récents déjà classés par tes règles, chaque modèle propose son classement.
+On <b>mesure</b> : réponses valides, accord avec tes règles, accord entre les deux modèles, temps de réponse. Les articles ne sont pas modifiés.</div>
+<form method="post" action="/reglages/ia/banc"><input type="hidden" name="csrf" value="{{ csrf }}">
+<div class="ligne">
+<input type="text" name="modele_a" class="petit" style="width:230px" value="{{ (valeurs.ia_routage.get('classification') or ['local:ministral-3:3b'])[0] }}" aria-label="Modèle A">
+<span class="doux">contre</span>
+<input type="text" name="modele_b" class="petit" style="width:230px" placeholder="(facultatif) anthropic:" aria-label="Modèle B">
+<input type="number" name="n" class="petit" style="width:70px" value="40" min="5" max="100" aria-label="Nombre d'articles"><span class="doux">articles</span>
+<button class="bouton second">Lancer</button></div></form>
+{% if ia.bancs %}<div style="overflow-x:auto;margin-top:8px"><table>
+<tr><th>Lancé</th><th>Modèle</th><th>Réponses valides</th><th>Accord thème</th><th>Accord type</th><th>Temps / lot</th></tr>
+{% for b in ia.bancs %}
+{% if b.statut == 'en cours' %}<tr><td class="doux">{{ b.lance_le | paris }}</td><td colspan="5"><span class="pilule p-cyan">en cours</span> {{ b.modeles | join(' contre ') }} · {{ b.n }} articles</td></tr>
+{% elif b.statut == 'echec' %}<tr><td class="doux">{{ b.lance_le | paris }}</td><td colspan="5"><span class="pilule p-crit">échec</span> {{ b.resultats.erreur if b.resultats else '' }}</td></tr>
+{% else %}{% for nom, r in b.resultats.modeles.items() %}<tr><td class="doux">{% if loop.first %}{{ b.lance_le | paris }}{% endif %}</td><td>{{ nom }}</td>
+<td>{{ r.pct_valides if r.pct_valides is not none else '—' }} % <span class="doux">({{ r.valides }}/{{ r.articles }})</span></td>
+<td>{{ r.accord_theme if r.accord_theme is not none else '—' }}{% if r.accord_theme is not none %} %{% endif %} <span class="doux">({{ r.n_theme }})</span></td>
+<td>{{ r.accord_type if r.accord_type is not none else '—' }}{% if r.accord_type is not none %} %{% endif %} <span class="doux">({{ r.n_type }})</span></td>
+<td>{{ r.duree_moy_s }} s <span class="doux">({{ r.appels_reussis }})</span></td></tr>{% endfor %}
+{% if b.resultats.entre_modeles %}<tr><td></td><td colspan="5" class="doux">Accord entre les deux modèles sur le thème : <b>{{ b.resultats.entre_modeles.accord if b.resultats.entre_modeles.accord is not none else '—' }} %</b> ({{ b.resultats.entre_modeles.n }} articles)</td></tr>{% endif %}
+{% endif %}{% endfor %}</table></div>
+{% else %}<div class="doux" style="margin-top:6px">Aucun banc d'essai pour l'instant.</div>{% endif %}
+</section>
+{% endif %}
+
+{% if onglet == 'listes' %}
+<section class="carte verre">
+<h2>Listes de mots</h2>
+<div class="doux" style="margin-bottom:6px">Une entrée par ligne (ou séparées par des virgules). Accents et majuscules sans importance.
+Les changements s'appliquent aux nouveaux articles ; pour les 3 derniers jours, utilise « Réappliquer mes règles » dans l'onglet Thèmes.</div>
+<form method="post" action="/reglages/listes"><input type="hidden" name="csrf" value="{{ csrf }}">
+<div class="champs" style="grid-template-columns:repeat(auto-fill,minmax(300px,1fr))">
+{% for cle, lib, aide in listes %}<div class="champ"><label for="{{ cle }}"><b style="color:var(--txt)">{{ lib }}</b> · {{ valeurs[cle] | length }} entrée(s)</label>
+<textarea id="{{ cle }}" name="{{ cle }}" rows="7" class="zone">{{ valeurs[cle] | join('\n') }}</textarea>
+<span class="doux">{{ aide }}</span></div>{% endfor %}
+</div>
+<div class="boutons"><button class="bouton">Enregistrer les listes</button></div>
+</form>
+</section>
+{% endif %}
+
+{% if onglet == 'themes' %}
+<section class="carte verre">
+<h2>Thèmes et mots-clés</h2>
+<div class="doux" style="margin-bottom:6px">Un mot-clé dans le titre suffit à classer un article dans un thème ; dans le résumé seul, il en faut {{ valeurs.theme_resume_mots_min }} différents.
+Un thème n'est jamais supprimé : décoche « actif » pour l'ignorer.</div>
+<div class="champs" style="grid-template-columns:repeat(auto-fill,minmax(300px,1fr))">
+{% for th in themes %}<form method="post" action="/reglages/theme" class="champ carte" style="padding:6px;border:1px solid var(--bord);border-radius:10px">
+<input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="nom" value="{{ th.nom }}">
+<div class="ligne"><b>{{ th.nom }}</b><label class="case" style="margin-left:auto;height:auto;font-size:12px"><input type="checkbox" name="actif" {% if th.actif %}checked{% endif %}> actif</label></div>
+<textarea name="mots" rows="3" class="zone" aria-label="Mots-clés du thème {{ th.nom }}">{{ th.mots | join(', ') }}</textarea>
+<div class="boutons" style="margin-top:4px"><button class="bouton second" style="height:26px;font-size:12px">Enregistrer</button><span class="doux">{{ th.mots | length }} mot(s)</span></div>
+</form>{% endfor %}
+</div>
+</section>
+<div class="rangee">
+<section class="carte verre">
+<h2>Nouveau thème</h2>
+<form method="post" action="/reglages/theme"><input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="nouveau" value="1"><input type="hidden" name="actif" value="on">
+<div class="champ"><label for="nt">Nom</label><input type="text" id="nt" name="nom" maxlength="40" required></div>
+<div class="champ" style="margin-top:4px"><label for="nm">Mots-clés (virgules)</label><textarea id="nm" name="mots" rows="2" class="zone" required></textarea></div>
+<div class="boutons"><button class="bouton">Ajouter le thème</button></div></form>
+</section>
+<section class="carte verre">
+<h2>Réappliquer mes règles</h2>
+<div class="doux">Reclasse les articles des 3 derniers jours avec tes thèmes et listes actuels. Les événements qui ont déjà donné lieu à une alerte ne sont pas touchés.</div>
+<form method="post" action="/reglages/reclasser"><input type="hidden" name="csrf" value="{{ csrf }}">
+<div class="boutons"><button class="bouton second">Réappliquer aux 3 derniers jours</button></div></form>
+</section>
+</div>
+{% endif %}
+
+{% if onglet == 'sources' %}
+<section class="carte verre">
+<h2>Sources de ta revue de presse</h2>
+<div class="doux" style="margin-bottom:6px">Fiabilité 1 à 5 (indicative, utilisée pour la vérification et le choix du titre) · priorité 1 (haute) à 3 · fréquence de lecture en minutes (5 minimum).</div>
+<div style="overflow-x:auto"><table>
+<tr><th>Source</th><th>Zone</th><th>Active</th><th>Fiabilité</th><th>Priorité</th><th>Fréquence</th><th></th></tr>
+{% for s in sources %}<tr><form method="post" action="/reglages/source/{{ s.id }}" id="f{{ s.id }}"><input type="hidden" name="csrf" value="{{ csrf }}"></form>
+<td>{{ s.nom }}<div class="doux">{{ s.url }}{% if s.derniere_erreur %} · <span style="color:var(--rose)">erreur : {{ s.derniere_erreur[:80] }}</span>{% endif %}</div></td>
+<td class="doux">{{ 'Lyon/AURA' if s.zone == 'regional' else 'national' }}</td>
+<td><input type="checkbox" name="actif" form="f{{ s.id }}" aria-label="Active" {% if s.actif %}checked{% endif %}></td>
+<td><select name="fiabilite" form="f{{ s.id }}" class="petit" aria-label="Fiabilité">{% for n in range(1, 6) %}<option {% if n == s.fiabilite %}selected{% endif %}>{{ n }}</option>{% endfor %}</select></td>
+<td><select name="priorite" form="f{{ s.id }}" class="petit" aria-label="Priorité">{% for n in range(1, 4) %}<option {% if n == s.priorite %}selected{% endif %}>{{ n }}</option>{% endfor %}</select></td>
+<td><input type="number" name="frequence_minutes" form="f{{ s.id }}" min="5" max="1440" value="{{ s.frequence_minutes }}" class="petit" style="width:70px" aria-label="Fréquence"></td>
+<td><button class="bouton second" form="f{{ s.id }}" style="height:26px;font-size:12px">OK</button></td></tr>{% endfor %}
+</table></div>
+</section>
+<section class="carte verre">
+<h2>Ajouter une source (flux RSS)</h2>
+<form method="post" action="/reglages/source-ajout"><input type="hidden" name="csrf" value="{{ csrf }}">
+<div class="champs">
+<div class="champ"><label for="sn">Nom</label><input type="text" id="sn" name="nom" maxlength="200" required></div>
+<div class="champ"><label for="su">Adresse du flux</label><input type="text" id="su" name="url" placeholder="https://…/rss" required style="max-width:none"></div>
+<div class="champ"><label for="sc">Catégorie</label><select id="sc" name="categorie" class="petit"><option value="media">média</option><option value="institutionnel">institution</option><option value="complement">complément</option></select></div>
+<div class="champ"><label for="sv">Niveau</label><select id="sv" name="niveau" class="petit"><option value="2">2 · média</option><option value="1">1 · institutionnel</option><option value="4">4 · complément</option></select></div>
+<div class="champ"><label for="sz">Zone</label><select id="sz" name="zone" class="petit"><option value="national">national</option><option value="regional">Lyon/AURA</option></select></div>
+<div class="champ"><label for="sf">Fiabilité</label><select id="sf" name="fiabilite" class="petit">{% for n in range(1, 6) %}<option {% if n == 3 %}selected{% endif %}>{{ n }}</option>{% endfor %}</select></div>
+<div class="champ"><label for="sq">Fréquence (min)</label><input type="number" id="sq" name="frequence_minutes" min="5" value="30" required></div>
+</div>
+<div class="doux" style="margin-top:4px">Sources publiques uniquement, en respectant leurs conditions d'utilisation. Les adresses privées (réseau local, VPN, serveur) sont refusées.</div>
+<div class="boutons"><button class="bouton">Ajouter</button></div></form>
+</section>
+{% endif %}
+
+{% if onglet == 'historique' %}
+<section class="carte verre" id="historique">
+<h2>Historique des changements</h2>
+{% if historique %}<div style="overflow-x:auto"><table>
+<tr><th>Quand</th><th>Réglage</th><th>Avant</th><th>Après</th><th>Par</th><th></th></tr>
+{% for h in historique %}<tr><td class="doux" style="white-space:nowrap">{{ h.le | paris }}</td><td>{{ h.libelle }}</td>
+<td class="doux">{{ lisible(h.ancienne) if h.ancienne is not none else 'défaut' }}</td><td>{{ lisible(h.nouvelle) }}</td><td class="doux">{{ h.origine }}</td>
+<td><form method="post" action="/reglages/annuler/{{ h.id }}" class="inline"><input type="hidden" name="csrf" value="{{ csrf }}">
+<button class="bouton second" style="height:26px;padding:0 8px;font-size:12px" title="Remettre la valeur d'avant">Annuler</button></form></td></tr>{% endfor %}
+</table></div>
+{% else %}<div class="doux">Aucun changement pour l'instant : toutes les valeurs sont celles par défaut.</div>{% endif %}
+</section>
+{% endif %}
+
+<script>
+(function () {
+  var total = document.getElementById('total');
+  if (!total) return;
+  function somme() {
+    var t = 0;
+    document.querySelectorAll('.poids input[type=number]').forEach(function (i) { t += parseInt(i.value || '0', 10) || 0; });
+    total.textContent = t; total.style.color = t === 100 ? 'var(--vert)' : 'var(--rose)';
+  }
+  document.querySelectorAll('.poids input[type=range]').forEach(function (r) {
+    var n = document.getElementById(r.dataset.lie);
+    r.addEventListener('input', function () { n.value = r.value; somme(); });
+    n.addEventListener('input', function () { r.value = n.value; somme(); });
+  });
+})();
+</script>
+{% endblock %}

@@ -24,7 +24,7 @@ from app.commandes import traiter
 from app.config import get_settings
 from app.db import get_etat, session, set_etat
 from app.diffusion import diffuseur_depuis_config
-from app.ia import ClientIA, etat_budget, proposer_classification, resumes_vers_evenements, resumeur
+from app.ia import ClientIA, client_ia_depuis_config, etat_budget, proposer_classification, resumes_vers_evenements, resumeur
 from app.journal import ecrire
 from app.quotidien import tache as journal_quotidien
 from app.parametres import tous
@@ -50,7 +50,7 @@ class Orchestrateur:
         self.http = http or client_http()
         self.tg = tg or Telegram(s.telegram_bot_token.get_secret_value(), s.telegram_chat_id)
         self.diff = diffuseur_depuis_config(self.tg)  # Telegram + e-mail selon .env
-        self.ia = ia or ClientIA(s.anthropic_api_key.get_secret_value())
+        self.ia = ia or client_ia_depuis_config()
         self.verrou = threading.Lock()
 
     # ------------------------------------------------------------ cycle
@@ -95,7 +95,7 @@ class Orchestrateur:
             return self._synthese(conn, type_, now, a_la_demande)
 
     def _synthese(self, conn, type_: str, now: datetime, a_la_demande: bool) -> bool:
-        res = resumeur(conn, self.ia) if self.ia.disponible(conn, now)[0] else None
+        res = resumeur(conn, self.ia) if self.ia.disponible(conn, now, "synthese")[0] else None
         local = now.astimezone(PARIS)
         if type_ == "briefing":
             prec = get_etat(conn, "dernier_briefing_le")

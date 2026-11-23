@@ -1,4 +1,4 @@
-"""Pages de lecture (lecture seule) : accueil, archives, lecture, evenement, recherche, connexion.
+"""Pages web : lecture (accueil, journal, archives, evenement, recherche), aide, reglages (F11), connexion.
 
 Tout le contenu est echappe automatiquement (Jinja2). Le texte des syntheses, deja
 mis en forme pour Telegram, est NETTOYE avant affichage : seules les balises
@@ -23,7 +23,9 @@ from app.analyse import niveau
 from app.config import get_settings
 from app.db import get_etat, session
 from app.ia import etat_budget
-from app import explications, quotidien
+import secrets
+
+from app import banc, explications, quotidien, reglages
 from app.recherche import chercher_articles, chronologie
 from app.util import from_iso, to_iso, utcnow
 
@@ -291,14 +293,240 @@ def fonctionnement(request: Request):
             "dernier_cycle": get_etat(conn, "dernier_cycle"),
             "themes": [r["nom"] for r in conn.execute("SELECT nom FROM themes WHERE actif = 1 ORDER BY nom")],
         }
-    cle_ia = bool(s.anthropic_api_key.get_secret_value())
-    ia_etat = ("active (Claude)" if cle_ia and p["ia_active"] else
-               "désactivée par ton réglage" if cle_ia else "inactive : aucune clé IA, les règles font tout le travail")
+    from app.ia import client_ia_depuis_config
+    with session(s.db_path) as conn:
+        dispo, raison = client_ia_depuis_config().disponible(conn)
+    ordre = " → ".join(p["ia_routage"].get("classification", []))
+    cle_ia = dispo
+    ia_etat = (f"active ({ordre})" if dispo else "désactivée par ton réglage" if not p["ia_active"]
+               else f"inactive ({raison}) : les règles font tout le travail")
     return page("fonctionnement.html", request, titre_page="Comment ça marche", entete="Comment ça marche",
                 sources=sources, stats=stats, ia_etat=ia_etat, ia_on=cle_ia and p["ia_active"],
                 echelle=explications.echelle(p), canaux={
                     "email": bool(s.smtp_hote and s.email_destinataire),
                     "telegram": bool(s.telegram_bot_token.get_secret_value() and s.telegram_chat_id)})
+
+
+# ------------------------------------------------------------------ reglages (F11)
+CSRF = "veille_csrf"
+
+
+async def _formulaire(request: Request) -> dict:
+    """Corps du formulaire + controle anti-falsification (jeton du cookie = jeton du formulaire)."""
+    corps = {k: v[-1] for k, v in parse_qs((await request.body()).decode("utf-8", "replace")[:20000],
+                                             keep_blank_values=True).items()}
+    jeton = request.cookies.get(CSRF, "")
+    if not jeton or not secrets.compare_digest(jeton, corps.get("csrf", "")):
+        raise HTTPException(403, "formulaire expiré : rechargez la page")
+    return corps
+
+
+ONGLETS = {"score": "Score et horaires", "modele": "Modèle IA", "listes": "Listes", "themes": "Thèmes",
+           "sources": "Sources", "historique": "Historique"}
+
+
+def _etat_ia(conn, p: dict) -> dict:
+    from app.ia import FOURNISSEURS, client_ia_depuis_config, taux_accord
+    s = get_settings()
+    pause = get_etat(conn, "ia_local_pause_jusqu")
+    return {"fournisseurs": FOURNISSEURS, "cle_anthropic": bool(s.anthropic_api_key.get_secret_value()),
+            "cle_openrouter": bool(s.openrouter_api_key.get_secret_value()),
+            "local_pause": pause if pause and from_iso(pause) > utcnow() else None,
+            "disponible": client_ia_depuis_config().disponible(conn), "accord": taux_accord(conn),
+            "agents": reglages.AGENTS_IA, "bancs": banc.derniers(conn),
+            "derniers": conn.execute("SELECT horodatage, agent, fournisseur, modele, cout_eur FROM couts "
+                                     "ORDER BY id DESC LIMIT 8").fetchall()}
+
+
+def _page_reglages(request: Request, message: str = "", erreur: str = "", poids_form: dict | None = None,
+                   apercu: list | None = None, onglet: str = "score", essai: dict | None = None,
+                   modeles: dict | None = None) -> HTMLResponse:
+    jeton = request.cookies.get(CSRF) or secrets.token_urlsafe(24)
+    onglet = onglet if onglet in ONGLETS else "score"
+    with session(get_settings().db_path) as conn:
+        p = parametres.tous(conn)
+        hist = reglages.historique(conn) if onglet == "historique" else []
+        themes = reglages.themes(conn) if onglet == "themes" else []
+        sources = conn.execute("SELECT * FROM sources ORDER BY niveau, zone, nom").fetchall() if onglet == "sources" else []
+        ia = _etat_ia(conn, p) if onglet == "modele" else None
+    poids = poids_form or p["poids_score"]
+    r = page("reglages.html", request, titre_page="Réglages", entete="Réglages", sections=reglages.SECTIONS,
+             valeurs=p, poids=poids, total=sum(poids.values()), apercu=apercu, historique=hist, csrf=jeton,
+             message=message, erreur=erreur, lisible=reglages.valeur_lisible, defauts=parametres.DEFAUTS,
+             onglet=onglet, onglets=ONGLETS, listes=reglages.LISTES, themes=themes, sources=sources, ia=ia,
+             essai=essai, modeles=modeles)
+    r.set_cookie(CSRF, jeton, httponly=True, samesite="strict", secure=auth.https(request), path="/reglages")
+    return r
+
+
+@router.get("/reglages", response_class=HTMLResponse)
+def reglages_page(request: Request, ok: str = "", onglet: str = "score"):
+    msg = {"enregistre": "Réglages enregistrés.", "annule": "Changement annulé.", "defaut": "Valeur par défaut remise.",
+           "rien": "Aucun changement.", "source": "Source ajoutée : elle sera lue au prochain cycle.",
+           "banc": "Banc d'essai lancé : il tourne en arrière-plan, recharge la page dans une minute."}.get(ok, "")
+    if ok.startswith("poids"):
+        msg = f"Pondération enregistrée : {ok[5:] or '0'} événement(s) des 48 dernières heures recalculé(s)."
+    if ok.startswith("reclasse"):
+        msg = f"Règles réappliquées : {ok[8:] or '0'} article(s) des 3 derniers jours reclassé(s)."
+    return _page_reglages(request, message=msg, onglet=onglet)
+
+
+def _ok(onglet: str, code: str) -> RedirectResponse:
+    return RedirectResponse(f"/reglages?onglet={onglet}&ok={code}", status_code=303)
+
+
+@router.post("/reglages/listes", response_class=HTMLResponse)
+async def reglages_listes(request: Request):
+    form = await _formulaire(request)
+    try:
+        with session(get_settings().db_path) as conn:
+            change = reglages.enregistrer_listes(conn, form)
+    except ValueError as e:
+        return _page_reglages(request, erreur=str(e), onglet="listes")
+    return _ok("listes", "enregistre" if change else "rien")
+
+
+@router.post("/reglages/theme", response_class=HTMLResponse)
+async def reglages_theme(request: Request):
+    form = await _formulaire(request)
+    try:
+        with session(get_settings().db_path) as conn:
+            reglages.enregistrer_theme(conn, form.get("nom", ""), form.get("mots", ""), form.get("actif") == "on",
+                                       nouveau=form.get("nouveau") == "1")
+    except ValueError as e:
+        return _page_reglages(request, erreur=str(e), onglet="themes")
+    return _ok("themes", "enregistre")
+
+
+@router.post("/reglages/source/{source_id}", response_class=HTMLResponse)
+async def reglages_source(request: Request, source_id: int):
+    form = await _formulaire(request)
+    try:
+        with session(get_settings().db_path) as conn:
+            change = reglages.modifier_source(conn, source_id, form)
+    except ValueError as e:
+        return _page_reglages(request, erreur=str(e), onglet="sources")
+    return _ok("sources", "enregistre" if change else "rien")
+
+
+@router.post("/reglages/source-ajout", response_class=HTMLResponse)
+async def reglages_source_ajout(request: Request):
+    form = await _formulaire(request)
+    try:
+        with session(get_settings().db_path) as conn:
+            reglages.ajouter_source(conn, form)
+    except ValueError as e:
+        return _page_reglages(request, erreur=str(e), onglet="sources")
+    return _ok("sources", "source")
+
+
+@router.post("/reglages/ia", response_class=HTMLResponse)
+async def reglages_ia(request: Request):
+    form = await _formulaire(request)
+    try:
+        with session(get_settings().db_path) as conn:
+            change = reglages.enregistrer_ia(conn, form)
+    except ValueError as e:
+        return _page_reglages(request, erreur=str(e), onglet="modele")
+    return _ok("modele", "enregistre" if change else "rien")
+
+
+@router.post("/reglages/ia/essai", response_class=HTMLResponse)
+async def reglages_ia_essai(request: Request):
+    from app.ia import FOURNISSEURS, client_ia_depuis_config
+    form = await _formulaire(request)
+    f = form.get("fournisseur", "")
+    if f not in FOURNISSEURS:
+        raise HTTPException(400, "fournisseur inconnu")
+    ia = client_ia_depuis_config()
+    with session(get_settings().db_path) as conn:
+        p = parametres.tous(conn)
+        if form.get("action") == "lister":
+            try:
+                liste = ia.lister_modeles(p, f) if ia._configure(f, p) else None  # noqa: SLF001
+                modeles = {"fournisseur": f, "liste": liste, "erreur": None if liste is not None else "non configuré"}
+            except Exception as exc:  # noqa: BLE001
+                modeles = {"fournisseur": f, "liste": None, "erreur": f"{type(exc).__name__}"}
+            return _page_reglages(request, onglet="modele", modeles=modeles)
+        essai = {"fournisseur": f, "modele": form.get("modele", "").strip()[:100],
+                 **ia.tester(conn, f, form.get("modele", "").strip()[:100])}
+    return _page_reglages(request, onglet="modele", essai=essai)
+
+
+@router.post("/reglages/ia/banc", response_class=HTMLResponse)
+async def reglages_ia_banc(request: Request):
+    from app.ia import client_ia_depuis_config
+    form = await _formulaire(request)
+    modeles = [m.strip() for m in (form.get("modele_a", ""), form.get("modele_b", "")) if m.strip()]
+    try:
+        n = int(form.get("n") or 40)
+        banc.lancer(get_settings().db_path, client_ia_depuis_config(), modeles, n)
+    except ValueError as e:
+        return _page_reglages(request, erreur=str(e), onglet="modele")
+    return _ok("modele", "banc")
+
+
+@router.post("/reglages/reclasser", response_class=HTMLResponse)
+async def reglages_reclasser(request: Request):
+    await _formulaire(request)
+    from scripts.reclasser import reclasser
+    r = reclasser(get_settings().db_path, 3)
+    return _ok("themes", f"reclasse{r['articles']}")
+
+
+@router.post("/reglages/poids", response_class=HTMLResponse)
+async def reglages_poids(request: Request):
+    form = await _formulaire(request)
+    try:
+        poids = reglages.lire_poids(form)
+    except ValueError as e:
+        return _page_reglages(request, erreur=str(e))
+    total = sum(poids.values())
+    with session(get_settings().db_path) as conn:
+        apercu = reglages.apercu_poids(conn, poids, utcnow())
+        if form.get("action") != "enregistrer":
+            return _page_reglages(request, poids_form=poids, apercu=apercu)
+        if total != 100:
+            return _page_reglages(request, poids_form=poids, apercu=apercu,
+                                  erreur=f"Le total doit faire 100 (actuellement {total}).")
+        n = reglages.enregistrer_poids(conn, poids, utcnow())
+    return _ok("score", f"poids{n}")
+
+
+@router.post("/reglages/section/{nom}", response_class=HTMLResponse)
+async def reglages_section(request: Request, nom: str):
+    if nom not in reglages.SECTIONS:
+        raise HTTPException(404, "introuvable")
+    form = await _formulaire(request)
+    try:
+        valeurs = reglages.lire_formulaire(nom, form)
+        with session(get_settings().db_path) as conn:
+            change = reglages.appliquer(conn, valeurs)
+    except ValueError as e:
+        return _page_reglages(request, erreur=str(e))
+    return _ok("score", "enregistre" if change else "rien")
+
+
+@router.post("/reglages/annuler/{hist_id}")
+async def reglages_annuler(request: Request, hist_id: int):
+    await _formulaire(request)
+    try:
+        with session(get_settings().db_path) as conn:
+            reglages.annuler(conn, hist_id, utcnow())
+    except ValueError as e:
+        return _page_reglages(request, erreur=str(e), onglet="historique")
+    return _ok("historique", "annule")
+
+
+@router.post("/reglages/defaut/{cle}")
+async def reglages_defaut(request: Request, cle: str):
+    await _formulaire(request)
+    try:
+        with session(get_settings().db_path) as conn:
+            reglages.remettre_defaut(conn, cle, utcnow())
+    except ValueError as e:
+        return _page_reglages(request, erreur=str(e))
+    return RedirectResponse("/reglages?ok=defaut", status_code=303)
 
 
 # ------------------------------------------------------------------ recherche (F10)

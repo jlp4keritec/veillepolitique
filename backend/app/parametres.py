@@ -113,12 +113,22 @@ DEFAUTS: dict[str, tuple[Any, str]] = {
     "plage_points": ("08:00-22:00", "Plage horaire des points de veille (Paris)"),
     "point_si_rien": (False, "Envoyer un point meme sans nouveaute"),
     # --- IA et couts (F12) ---
-    "ia_active": (True, "Utiliser Claude (si cle API presente et budget disponible)"),
-    "modele_ia": ("claude-haiku-5-5", "Modele Claude utilise"),
+    "ia_active": (True, "Utiliser l'IA (locale ou en ligne) si disponible"),
+    "modele_ia": ("claude-haiku-5-5", "Modele Claude utilise par defaut"),
+    "ia_local_url": ("", "Adresse de l'IA locale Ollama (ex. http://10.10.0.2:11434 = bandit via le VPN)"),
+    "ia_routage": ({
+        "classification": ["local:ministral-3:3b", "anthropic:"],
+        "synthese": ["local:ministral-3:3b", "anthropic:"],
+        "question": ["local:ministral-3:3b", "anthropic:"],
+    }, "Par agent : modeles essayes dans l'ordre (relais). local / anthropic / openrouter"),
+    "ia_local_timeout_s": (120, "Temps maximum d'une reponse de l'IA locale (secondes)"),
+    "prix_openrouter_entree_usd_mtok": (1.0, "OpenRouter : prix entree USD / million de tokens (estimation prudente)"),
+    "prix_openrouter_sortie_usd_mtok": (3.0, "OpenRouter : prix sortie USD / million de tokens (estimation prudente)"),
+    "budget_x_eur": (30.0, "Plafond mensuel de la veille X (EUR), en plus du budget IA"),
     "prix_entree_usd_mtok": (0.10, "Prix entree USD / million de tokens (a verifier)"),
     "prix_sortie_usd_mtok": (0.50, "Prix sortie USD / million de tokens (a verifier)"),
     "taux_usd_eur": (0.87, "Taux de conversion USD -> EUR (a ajuster)"),
-    "budget_mensuel_eur": (50.0, "Plafond mensuel d'appels IA (EUR)"),
+    "budget_mensuel_eur": (20.0, "Plafond mensuel de l'IA en ligne (EUR) ; l'IA locale est gratuite"),
     "budget_alerte_pct": (80, "Alerte Telegram a ce pourcentage du budget"),
     "ia_max_articles_par_cycle": (20, "Articles envoyes a Claude par cycle (maximum)"),
 }
@@ -166,6 +176,7 @@ THEMES_MAJ: dict[str, list[list[str]]] = {
 # Nouvelles valeurs par defaut : appliquees SEULEMENT si J a garde l'ancienne valeur.
 PARAMS_MAJ: dict[str, list] = {
     "seuil_similarite_titre": [68],  # v0.2.2 : changement de methode de comparaison
+    "budget_mensuel_eur": [50.0, 50],  # v0.9.0 : 50 EUR tout compris = IA en ligne 20 + X 30
 }
 
 
@@ -248,6 +259,23 @@ def _convertir(cle: str, valeur: Any) -> Any:
         _verifier_heure(fin)
     if cle in ("seuil_critique", "seuil_important", "seuil_similarite_titre") and valeur > 100:
         raise ValueError("valeur entre 0 et 100")
+    if cle == "ia_routage":
+        agents = {"classification", "synthese", "question"}
+        if not set(valeur) <= agents:
+            raise ValueError(f"agents possibles : {sorted(agents)}")
+        for agent, liste in valeur.items():
+            if not isinstance(liste, list) or not liste or len(liste) > 4:
+                raise ValueError(f"{agent} : 1 a 4 modeles")
+            for e in liste:
+                f, sep, m = str(e).partition(":")
+                if not sep or f not in ("local", "anthropic", "openrouter") or len(m) > 100:
+                    raise ValueError(f"{agent} : « {e} » invalide (local:modele, anthropic:modele, openrouter:modele)")
+                if f != "anthropic" and not m.strip():
+                    raise ValueError(f"{agent} : preciser le modele apres « {f}: »")
+    if cle == "ia_local_url" and valeur:
+        import re as _re
+        if not _re.fullmatch(r"https?://[A-Za-z0-9.\-]+(:\d{2,5})?/?", valeur):
+            raise ValueError("adresse attendue, ex. http://10.10.0.2:11434")
     if cle == "poids_score":
         attendues = set(DEFAUTS["poids_score"][0])
         if set(valeur) != attendues or sum(valeur.values()) != 100:
@@ -261,10 +289,15 @@ def _verifier_heure(h: str) -> None:
         raise ValueError("heure attendue au format HH:MM")
 
 
-def modifier(conn: sqlite3.Connection, cle: str, valeur: Any) -> Any:
+def modifier(conn: sqlite3.Connection, cle: str, valeur: Any, origine: str = "api") -> Any:
     if cle not in DEFAUTS:
         raise KeyError(cle)
     v = _convertir(cle, valeur)
+    ancienne = lire(conn, cle)
+    if ancienne != v:  # historique : qui a change quoi, et quand (F11)
+        conn.execute("INSERT INTO historique_reglages (le, cle, ancienne, nouvelle, origine) VALUES (?,?,?,?,?)",
+                     (to_iso(utcnow()), cle, json.dumps(ancienne, ensure_ascii=False),
+                      json.dumps(v, ensure_ascii=False), origine))
     conn.execute(
         "INSERT INTO parametres (cle, valeur, description, maj_le) VALUES (?,?,?,?) "
         "ON CONFLICT(cle) DO UPDATE SET valeur = excluded.valeur, maj_le = excluded.maj_le",

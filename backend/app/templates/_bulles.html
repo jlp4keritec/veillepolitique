@@ -36,7 +36,10 @@
 {% if c.mots_titre %}Mots-clés dans le titre : {{ c.mots_titre | join(', ') }}<br>{% endif %}
 {% if c.mots_resume %}Mots-clés dans le résumé : {{ c.mots_resume | join(', ') }}<br>{% endif %}
 {% for n in c.notes %}{{ n }}<br>{% endfor %}
-{% if c.ia %}Thème proposé par l'IA sur {{ c.ia }} article(s), accepté car il est dans ta liste de thèmes.<br>{% endif %}
+{% if c.avis.accord %}<b>Double avis</b> : l'IA ({{ c.avis.modeles | join(', ') }}) est d'accord avec tes règles sur {{ c.avis.accord }} article(s).<br>{% endif %}
+{% if c.avis.complete %}Thème proposé par l'IA sur {{ c.avis.complete }} article(s) où tes règles n'avaient rien trouvé (pris dans ta liste).<br>{% endif %}
+{% if c.avis.divergent %}<span class="pilule p-imp">avis divergents</span> sur {{ c.avis.divergent }} article(s) : l'IA proposait {{ c.avis.propositions | join(', ') }} ; <b>tes règles ont tranché</b>.<br>{% endif %}
+{% if c.ia and not (c.avis.accord or c.avis.complete or c.avis.divergent) %}Thème proposé par l'IA sur {{ c.ia }} article(s), accepté car il est dans ta liste de thèmes.<br>{% endif %}
 {% if not c.conserves %}<span class="doux">Mots non conservés (articles classés avant la v0.7.0).</span><br>{% endif %}
 <b>Zone {{ 'Lyon/AURA' if zone == 'regional' else 'nationale' }}</b> : {{ c.zones | join(' ; ') if c.zones else ('au moins un article régional' if zone == 'regional' else 'aucun article régional') }}<br>
 {% if c.types %}<b>Type</b> : {{ c.types | join(' ; ') }}<br>{% endif %}

@@ -15,7 +15,7 @@ from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.responses import JSONResponse, RedirectResponse
 from pydantic import BaseModel, Field
 
-from app import __version__, auth, parametres
+from app import __version__, auth, parametres, reglages
 from app.config import get_settings
 from app.db import get_etat, session
 from app.ia import etat_budget
@@ -139,6 +139,10 @@ def sources() -> list[dict]:
 
 @app.post("/api/v1/sources", status_code=201)
 def ajouter_source(s: SourceIn) -> dict:
+    try:
+        reglages.adresse_publique(str(s.url))  # jamais une adresse privee (serveur, VPN, maison)
+    except ValueError as exc:
+        raise HTTPException(422, str(exc)) from None
     with db() as conn:
         cur = conn.execute(
             "INSERT OR IGNORE INTO sources (nom, url, type, categorie, niveau, zone, fiabilite, priorite, "
@@ -179,7 +183,7 @@ def lire_parametres() -> dict:
 def modifier_parametre(cle: str, corps: Valeur) -> dict:
     with db() as conn:
         try:
-            return {"cle": cle, "valeur": parametres.modifier(conn, cle, corps.valeur)}
+            return {"cle": cle, "valeur": parametres.modifier(conn, cle, corps.valeur, origine="api")}
         except KeyError:
             raise HTTPException(404, "parametre inconnu") from None
         except ValueError as exc:

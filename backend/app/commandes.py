@@ -93,7 +93,7 @@ def traiter(conn: sqlite3.Connection, texte: str, now: datetime, ia: ClientIA | 
             n = conn.execute("UPDATE sources SET actif = ? WHERE id = ?", (actif, int(arg))).rowcount
             return f"Source {arg} {'activée' if actif else 'désactivée'}." if n else f"Source {arg} introuvable."
         if cmd in ("/pause", "/reprise"):
-            parametres.modifier(conn, "collecte_active", cmd == "/reprise")
+            parametres.modifier(conn, "collecte_active", cmd == "/reprise", origine="telegram")
             return "Collecte relancée." if cmd == "/reprise" else "Collecte suspendue. /reprise pour relancer."
         if cmd == "/params":
             vals = parametres.tous(conn)
@@ -105,7 +105,7 @@ def traiter(conn: sqlite3.Connection, texte: str, now: datetime, ia: ClientIA | 
             cle, _, val = arg.partition(" ")
             if not cle or not val:
                 return "Usage : /param cle valeur (voir /params)"
-            v = parametres.modifier(conn, cle, val)
+            v = parametres.modifier(conn, cle, val, origine="telegram")
             return f"Règle modifiée : {e(cle)} = {e(json.dumps(v, ensure_ascii=False))}"
         if cmd == "/couts":
             b = etat_budget(conn, now)
@@ -153,7 +153,7 @@ def question(conn: sqlite3.Connection, texte: str, now: datetime, ia: ClientIA |
                 f"depuis le {critere['depuis'].strftime('%d/%m')}.")
     sources = "\n".join(f"[{i + 1}] {lien(el['url'], el['source'])} : {e(el['titre'])}"
                         for i, el in enumerate(elements))
-    texte_ia = repondre(conn, ia, texte, elements) if ia and ia.disponible(conn, now)[0] else None
+    texte_ia = repondre(conn, ia, texte, elements) if ia and ia.disponible(conn, now, "question")[0] else None
     if texte_ia:
         return f"{e(texte_ia)}\n<i>(réponse proposée par l'IA à partir des éléments ci-dessous)</i>\n\n{sources}"
     entete = f"{len(elements)} élément(s) trouvé(s) dans l'historique"

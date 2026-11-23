@@ -1,5 +1,51 @@
 # CHANGELOG - VEILLE
 
+## [0.9.0] - 2026-11-23 - IA locale ou en ligne, relais, double avis, banc d'essai (F12)
+
+### Ajoute
+- IA multi-fournisseurs : IA locale Ollama (bandit via le VPN, gratuite), Claude (Anthropic), OpenRouter.
+  Par agent (classement, syntheses, questions), une liste de modeles essayes dans l'ordre (relais) ;
+  sans reponse : regles seules. IA locale injoignable -> mise en pause 10 min (pas de cycle ralenti).
+- Double avis IA / regles sur le classement : accord -> retenu ; regles vides -> l'IA complete (dans la
+  liste de J) ; desaccord -> les regles tranchent, article marque "avis divergents" (bulle d'aide).
+  Chaque comparaison est mesuree (table avis_ia) et affichee (taux d'accord sur 30 jours).
+- Banc d'essai (Reglages > Modele IA) : 1 ou 2 modeles sur N articles recents ; mesure reponses valides,
+  accord avec les regles, accord entre modeles, temps par lot. Tache de fond, articles jamais modifies.
+- Onglet Reglages > Modele IA : etat des fournisseurs (cles presentes ou non, jamais affichees),
+  modeles par agent, adresse de l'IA locale, bouton Tester, liste des modeles disponibles, derniers appels.
+- Configuration : OPENROUTER_API_KEY (.env) ; parametres ia_local_url, ia_routage, ia_local_timeout_s,
+  prix OpenRouter (estimation prudente), budget_x_eur (30 EUR, phase X).
+- Couts : colonne fournisseur ; l'IA locale compte 0 EUR et n'est jamais bloquee par le budget.
+- 14 tests.
+
+### Modifie
+- Budget : 50 EUR tout compris = IA en ligne 20 EUR + veille X 30 EUR. budget_mensuel_eur passe de 50 a 20
+  SEULEMENT si J ne l'avait pas modifie. Encart du menu : "IA en ligne".
+- Historique des propositions IA : modele utilise (ex. local:ministral-3:3b).
+
+### Securite
+- Les cles ne passent jamais par une page : uniquement le .env du serveur.
+
+## [0.8.0] - 2026-11-23 - Page Reglages (F11)
+
+### Ajoute
+- Page Reglages (menu), onglets : Score et horaires, Listes, Themes, Sources, Historique.
+- Ponderation du score : curseurs, total = 100 obligatoire, APERCU du top 24 h avec les nouveaux poids
+  (les deux colonnes calculees au meme instant : seul l'effet des poids apparait), alerte signalee si un
+  evenement passerait le seuil. Enregistrement : evenements des 48 h recalcules ; photos du Journal intactes.
+- Seuils et alertes, horaires, collecte et budget, prenom : chaque section validee entierement (tout ou rien).
+- Listes (personnalites suivies, mots exclus, mots regionaux, mots a fort impact, partis/acteurs locaux).
+- Themes : mots-cles, actif/inactif, ajout (jamais de suppression) ; bouton "Reappliquer mes regles aux
+  3 derniers jours" (evenements deja alertes jamais touches).
+- Sources : active, fiabilite, priorite, frequence ; ajout d'un flux RSS.
+- Historique de tous les changements (page, API, Telegram) avec bouton Annuler ; retour aux valeurs par defaut.
+- 13 tests.
+
+### Securite
+- Formulaires proteges contre la falsification (jeton + cookie SameSite=Strict).
+- Ajout de source (page ET API) : adresses privees refusees (serveur, VPN 10.x, maison 192.168.x,
+  127.0.0.1, 169.254.x) : le serveur ne peut pas etre utilise pour sonder ton reseau.
+
 ## [0.7.0] - 2026-11-23 - Bulles d'aide et page "Comment ca marche" (F04, F10)
 
 ### Ajoute
