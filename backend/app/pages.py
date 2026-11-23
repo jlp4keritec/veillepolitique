@@ -10,7 +10,7 @@ import json
 import re
 from datetime import datetime, timedelta
 from pathlib import Path
-from urllib.parse import parse_qs, quote
+from urllib.parse import parse_qs, quote, urlsplit
 from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, HTTPException, Request
@@ -327,7 +327,7 @@ async def _formulaire(request: Request) -> dict:
 
 
 ONGLETS = {"score": "Score et horaires", "modele": "Modèle IA", "listes": "Listes", "themes": "Thèmes",
-           "sources": "Sources", "historique": "Historique"}
+           "sources": "Sources", "acces": "Accès", "historique": "Historique"}
 
 
 def _etat_ia(conn, p: dict) -> dict:
@@ -354,12 +354,20 @@ def _page_reglages(request: Request, message: str = "", erreur: str = "", poids_
         themes = reglages.themes(conn) if onglet == "themes" else []
         sources = conn.execute("SELECT * FROM sources ORDER BY niveau, zone, nom").fetchall() if onglet == "sources" else []
         ia = _etat_ia(conn, p) if onglet == "modele" else None
+        acces = None
+        if onglet == "acces":
+            from app import oauth
+            acces = {"oauth": oauth.actif(), "mcp_jeton": bool(get_settings().mcp_token.get_secret_value()),
+                     "url": oauth.base_url(request),
+                     "clients": [{**c, "retour": ", ".join(sorted({urlsplit(u).hostname or "?" for u in
+                                                                   json.loads(c["redirect_uris"])}))}
+                                 for c in oauth.acces_en_cours(conn)]}
     poids = poids_form or p["poids_score"]
     r = page("reglages.html", request, titre_page="Réglages", entete="Réglages", sections=reglages.SECTIONS,
              valeurs=p, poids=poids, total=sum(poids.values()), apercu=apercu, historique=hist, csrf=jeton,
              message=message, erreur=erreur, lisible=reglages.valeur_lisible, defauts=parametres.DEFAUTS,
              onglet=onglet, onglets=ONGLETS, listes=reglages.LISTES, themes=themes, sources=sources, ia=ia,
-             essai=essai, modeles=modeles)
+             essai=essai, modeles=modeles, acces=acces)
     r.set_cookie(CSRF, jeton, httponly=True, samesite="strict", secure=auth.https(request), path="/reglages")
     return r
 
@@ -368,7 +376,8 @@ def _page_reglages(request: Request, message: str = "", erreur: str = "", poids_
 def reglages_page(request: Request, ok: str = "", onglet: str = "score"):
     msg = {"enregistre": "Réglages enregistrés.", "annule": "Changement annulé.", "defaut": "Valeur par défaut remise.",
            "rien": "Aucun changement.", "source": "Source ajoutée : elle sera lue au prochain cycle.",
-           "banc": "Banc d'essai lancé : il tourne en arrière-plan, recharge la page dans une minute."}.get(ok, "")
+           "banc": "Banc d'essai lancé : il tourne en arrière-plan, recharge la page dans une minute.",
+           "revoque": "Accès révoqué : ce client devra être autorisé à nouveau."}.get(ok, "")
     if ok.startswith("poids"):
         msg = f"Pondération enregistrée : {ok[5:] or '0'} événement(s) des 48 dernières heures recalculé(s)."
     if ok.startswith("reclasse"):
@@ -469,6 +478,15 @@ async def reglages_ia_banc(request: Request):
     except ValueError as e:
         return _page_reglages(request, erreur=str(e), onglet="modele")
     return _ok("modele", "banc")
+
+
+@router.post("/reglages/acces/revoquer", response_class=HTMLResponse)
+async def reglages_revoquer(request: Request):
+    from app import oauth
+    form = await _formulaire(request)
+    with session(get_settings().db_path) as conn:
+        n = oauth.revoquer_client(conn, form.get("client_id", ""))
+    return _ok("acces", "revoque" if n else "rien")
 
 
 @router.post("/reglages/reclasser", response_class=HTMLResponse)

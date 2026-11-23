@@ -1,5 +1,24 @@
 # CHANGELOG - VEILLE
 
+## [0.12.0] - 2026-11-23 - Vrai acces OAuth pour le connecteur Claude (F09)
+
+### Ajoute
+- OAuth 2.1 sur le serveur MCP : metadonnees (RFC 9728, RFC 8414), enregistrement des clients (RFC 7591),
+  autorisation avec PKCE S256 obligatoire, jeton d'acces 1 h, renouvellement 30 j avec rotation, revocation.
+- Seul J autorise : la page d'autorisation exige le MOT DE PASSE DES PAGES puis un clic "Autoriser" (ou "Refuser").
+  OAuth actif seulement si ce mot de passe est regle (VPS).
+- Reglages > Acces : etat du jeton fixe et d'OAuth, clients autorises (dernier usage), bouton Revoquer.
+- Teste de bout en bout avec le client MCP officiel (Python v2.3.0) : decouverte, enregistrement,
+  connexion de J, autorisation, jetons, 8 outils, appel. 8 tests (155 au total).
+
+### Securite
+- Jetons et codes stockes haches (SHA-256). Un jeton OAuth n'ouvre que /mcp (pas les pages, pas l'API).
+- Retours autorises : https, ou http://localhost (Claude Code). Une demande SANS jeton ne compte plus comme
+  essai rate (sinon la 1re demande de Claude bloquerait l'acces).
+
+### Inchange
+- LILY : jeton fixe MCP_TOKEN accepte exactement comme avant (verifie avec le client MCP de LILY : 8 outils).
+
 ## [0.11.1] - 2026-11-23 - Fusion des livraisons paralleles + outils MCP compatibles LILY
 
 ### Fusion

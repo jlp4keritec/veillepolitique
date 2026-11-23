@@ -179,6 +179,25 @@ On <b>mesure</b> : réponses valides, accord avec tes règles, accord entre les 
 </section>
 {% endif %}
 
+{% if onglet == 'acces' %}
+<section class="carte verre">
+<h2>Accès au serveur MCP (lecture seule)</h2>
+<table>
+<tr><td style="width:220px">Jeton fixe (LILY, Claude Code)</td><td>{% if acces.mcp_jeton %}<span class="pilule p-info">actif</span>{% else %}<span class="doux">aucun (scripts/generer_jeton_mcp.py sur le serveur)</span>{% endif %}</td></tr>
+<tr><td>OAuth (connecteur Claude.ai)</td><td>{% if acces.oauth %}<span class="pilule p-info">actif</span> <span class="doux">adresse du connecteur : <code>{{ acces.url }}/mcp</code></span>{% else %}<span class="doux">inactif : il faut un mot de passe des pages (VPS)</span>{% endif %}</td></tr>
+</table>
+<div class="doux" style="margin-top:4px">Avec OAuth, c'est toi qui autorises chaque client : il ouvre une page VEILLE, tu te connectes avec ton mot de passe des pages et tu cliques « Autoriser ». Accès en lecture seule, révocable ci-dessous.</div>
+</section>
+<section class="carte verre">
+<h2>Clients autorisés</h2>
+{% if acces.clients %}<table><tr><th>Client</th><th>Retour vers</th><th>Autorisé le</th><th>Dernier usage</th><th></th></tr>
+{% for c in acces.clients %}<tr><td>{{ c.nom }}</td><td class="doux">{{ c.retour }}</td><td class="doux">{{ c.autorise_le | paris }}</td><td class="doux">{{ c.dernier_usage | paris }}</td>
+<td><form method="post" action="/reglages/acces/revoquer" class="inline"><input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="client_id" value="{{ c.client_id }}">
+<button class="bouton second" style="height:26px;font-size:12px">Révoquer</button></form></td></tr>{% endfor %}</table>
+{% else %}<div class="doux">Aucun client OAuth autorisé pour l'instant.</div>{% endif %}
+</section>
+{% endif %}
+
 {% if onglet == 'listes' %}
 <section class="carte verre">
 <h2>Listes de mots</h2>

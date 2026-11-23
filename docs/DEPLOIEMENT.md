@@ -53,8 +53,9 @@ ssh -t -i C:\mailou\id-ed25519 ubuntu@151.80.232.214 'cd ~/veille/backend && .ve
    - **LILY** : Paramètres → Serveurs MCP → onglet des autres serveurs : id `veille`, nom `VEILLE`, adresse
      `https://veille.mesoutilsagile.com/mcp`, jeton = le jeton VEILLE → **Tester** (8 outils gardés) → **Ajouter**.
      LILY range le jeton elle-même.
-   - **Claude.ai** (connecteur personnalisé, sans en-tête possible) : adresse `https://veille.mesoutilsagile.com/mcp/<jeton>`.
-     Attention : une adresse contenant le jeton apparaît dans les journaux Nginx du serveur ; préférer l'en-tête quand c'est possible.
+   - **Claude.ai** (connecteur personnalisé, OAuth) : Customize > Connectors > Add custom connector,
+     adresse `https://veille.mesoutilsagile.com/mcp`, rien dans « Advanced settings » → Add → **Connect** :
+     une page VEILLE s'ouvre → ton mot de passe des pages → **Autoriser**. Révocation : Réglages > Accès.
 3. Vérifier : page « Comment ça marche » → « Accès Claude / LILY (MCP) : actif ».
 4. Changer de jeton : même commande avec `--nouveau`, puis mettre à jour Claude / LILY.
 

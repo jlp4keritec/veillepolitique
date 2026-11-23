@@ -170,6 +170,34 @@ CREATE TABLE IF NOT EXISTS banc_essai (
     resultats TEXT                    -- JSON par modele + accord entre modeles
 );
 
+-- OAuth du serveur MCP (v0.12.0) : jetons et codes HACHES, jamais en clair
+CREATE TABLE IF NOT EXISTS oauth_clients (
+    client_id     TEXT PRIMARY KEY,
+    nom           TEXT NOT NULL,
+    redirect_uris TEXT NOT NULL,
+    cree_le       TEXT NOT NULL,
+    autorise_le   TEXT
+);
+CREATE TABLE IF NOT EXISTS oauth_codes (
+    code_hash      TEXT PRIMARY KEY,
+    client_id      TEXT NOT NULL,
+    redirect_uri   TEXT NOT NULL,
+    code_challenge TEXT NOT NULL,
+    expire_le      TEXT NOT NULL,
+    utilise        INTEGER NOT NULL DEFAULT 0
+);
+CREATE TABLE IF NOT EXISTS oauth_jetons (
+    id               INTEGER PRIMARY KEY AUTOINCREMENT,
+    acces_hash       TEXT NOT NULL UNIQUE,
+    renouv_hash      TEXT NOT NULL UNIQUE,
+    client_id        TEXT NOT NULL,
+    acces_expire_le  TEXT NOT NULL,
+    renouv_expire_le TEXT NOT NULL,
+    cree_le          TEXT NOT NULL,
+    dernier_usage_le TEXT,
+    revoque          INTEGER NOT NULL DEFAULT 0
+);
+
 -- Journal quotidien (F10, v0.6.0) : photo du top de chaque journee, jamais modifiee
 CREATE TABLE IF NOT EXISTS journal_quotidien (
     jour       TEXT PRIMARY KEY,          -- AAAA-MM-JJ (heure de Paris)

@@ -65,8 +65,9 @@ app = FastAPI(title="VEILLE", version=__version__, lifespan=lifespan)
 async def protection(request: Request, call_next):
     """Si un mot de passe est regle : tout est protege sauf /connexion et /api/v1/health."""
     chemin = request.url.path
-    if (auth.protection_active() and chemin not in auth.PUBLIC and not chemin.startswith("/mcp")
-            and not auth.connecte(request)):  # /mcp : protege par son propre jeton (mcp_serveur.py)
+    if (auth.protection_active() and chemin not in auth.PUBLIC
+            and not chemin.startswith(("/mcp", "/oauth/", "/.well-known/"))
+            and not auth.connecte(request)):  # /mcp : jeton propre ; /oauth : autorisation geree par oauth.py
         if chemin.startswith("/api/") or chemin in ("/docs", "/openapi.json", "/redoc"):
             return JSONResponse({"detail": "connexion requise"}, status_code=401)
         suite = chemin + (f"?{request.url.query}" if request.url.query else "")
@@ -75,10 +76,12 @@ async def protection(request: Request, call_next):
 
 
 from app.mcp_serveur import router as mcp_router  # noqa: E402
+from app.oauth import router as oauth_router  # noqa: E402
 from app.pages import router as pages_router  # noqa: E402
 
 app.include_router(pages_router)
 app.include_router(mcp_router)
+app.include_router(oauth_router)
 
 
 def db():

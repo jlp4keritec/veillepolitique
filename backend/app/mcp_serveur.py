@@ -18,7 +18,7 @@ from datetime import date, datetime, timedelta
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse, Response
 
-from app import __version__, auth, parametres, quotidien
+from app import __version__, auth, oauth, parametres, quotidien
 from app.config import get_settings
 from app.db import get_etat, session
 from app.ia import etat_budget
@@ -282,13 +282,17 @@ def traiter(msg: dict) -> dict | None:
     return _reponse(id_, erreur=(-32601, f"methode inconnue : {methode}"))
 
 
-def _jeton_ok(request: Request, jeton_chemin: str | None) -> bool:
-    attendu = get_settings().mcp_token.get_secret_value()
-    fourni = jeton_chemin or ""
+def _jeton_fourni(request: Request, jeton_chemin: str | None) -> str:
     h = request.headers.get("authorization", "")
-    if h.lower().startswith("bearer "):
-        fourni = h[7:].strip()
-    return bool(attendu) and secrets.compare_digest(fourni.encode(), attendu.encode())
+    return h[7:].strip() if h.lower().startswith("bearer ") else (jeton_chemin or "")
+
+
+def _jeton_ok(fourni: str) -> bool:
+    """Jeton fixe MCP_TOKEN (LILY, Claude Code) OU jeton OAuth valide (connecteur Claude.ai)."""
+    attendu = get_settings().mcp_token.get_secret_value()
+    if attendu and fourni and secrets.compare_digest(fourni.encode(), attendu.encode()):
+        return True
+    return oauth.acces_valide(fourni)
 
 
 def _trop_d_appels(cle: str) -> bool:
@@ -301,15 +305,20 @@ def _trop_d_appels(cle: str) -> bool:
 
 
 async def _point_entree(request: Request, jeton_chemin: str | None = None):
-    if not get_settings().mcp_token.get_secret_value():
+    if not get_settings().mcp_token.get_secret_value() and not oauth.actif():
         return Response(status_code=404)
     ip = auth.adresse(request)
     if auth.bloque(ip):
         return JSONResponse({"error": "trop d'essais, reessayez plus tard"}, status_code=429)
-    if not _jeton_ok(request, jeton_chemin):
-        auth.noter_echec(ip)
-        return JSONResponse({"error": "jeton MCP invalide"}, status_code=401,
-                            headers={"WWW-Authenticate": 'Bearer realm="veille"'})
+    fourni = _jeton_fourni(request, jeton_chemin)
+    if not _jeton_ok(fourni):
+        if fourni:  # seul un jeton FAUX compte comme essai rate (pas la 1re demande d'un client OAuth)
+            auth.noter_echec(ip)
+        entete = 'Bearer realm="veille"'
+        if oauth.actif():
+            entete += f', resource_metadata="{oauth.base_url(request)}/.well-known/oauth-protected-resource"'
+        return JSONResponse({"error": "jeton MCP invalide" if fourni else "connexion requise"}, status_code=401,
+                            headers={"WWW-Authenticate": entete})
     if request.method != "POST":
         return Response(status_code=405, headers={"Allow": "POST"})  # pas de flux SSE : mode sans etat
     if _trop_d_appels("mcp"):
