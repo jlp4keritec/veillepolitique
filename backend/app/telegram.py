@@ -8,6 +8,7 @@
 
 import html
 import sqlite3
+from datetime import datetime
 
 import httpx
 
@@ -90,36 +91,59 @@ class Telegram:
         return out
 
 
-def notifier(conn: sqlite3.Connection, tg: Telegram, type_: str, cle_unique: str, contenu: str,
+def notifier(conn: sqlite3.Connection, tg, type_: str, cle_unique: str, contenu: str,
              evenement_id: int | None = None, score: int | None = None,
-             nb_sources: int | None = None) -> bool:
-    """Enregistre puis envoie. Retourne False si cette cle a deja ete envoyee."""
+             nb_sources: int | None = None, now: datetime | None = None) -> bool:
+    """Enregistre puis envoie. Retourne False si cette cle a deja ete envoyee.
+
+    `tg` : un canal ou un Diffuseur (interface .actif / .envoyer). L'archive garde le texte
+    complet ; le message envoye peut etre la version courte avec lien (app/diffusion.py).
+    """
     cur = conn.execute(
         "INSERT OR IGNORE INTO notifications (type, cle_unique, evenement_id, score_envoye, "
         "nb_sources_envoye, contenu, statut, envoye_le) VALUES (?,?,?,?,?,?,'en cours',?)",
-        (type_, cle_unique, evenement_id, score, nb_sources, contenu, to_iso(utcnow())))
+        (type_, cle_unique, evenement_id, score, nb_sources, contenu, to_iso(now or utcnow())))
     if cur.rowcount == 0:
         return False
+    notif_id = cur.lastrowid
+    message = _message_a_envoyer(conn, type_, notif_id, contenu, evenement_id)
+    conn.execute("UPDATE notifications SET message_envoye = ? WHERE id = ?", (message, notif_id))
     conn.commit()  # trace ecrite avant l'envoi : jamais de double envoi
-    statut, erreur = tg.envoyer(contenu)
-    conn.execute("UPDATE notifications SET statut = ?, erreur = ? WHERE cle_unique = ?",
-                 (statut, erreur, cle_unique))
-    if statut == "echec":
-        ecrire(conn, "ERREUR", "telegram", f"{type_} {cle_unique} : {erreur}")
+    statut, erreur = _envoyer(tg, message, contenu)
+    conn.execute("UPDATE notifications SET statut = ?, erreur = ? WHERE id = ?", (statut, erreur, notif_id))
+    if statut == "echec" or (erreur and erreur.startswith("partiel")):
+        ecrire(conn, "ERREUR", "diffusion", f"{type_} {cle_unique} : {erreur}")
     if evenement_id and type_ == "alerte":
         conn.execute("UPDATE evenements SET notifie = 1 WHERE id = ?", (evenement_id,))
     conn.commit()
     return True
 
 
-def reessayer_echecs(conn: sqlite3.Connection, tg: Telegram, max_tentatives: int = 3) -> int:
+def _message_a_envoyer(conn, type_: str, notif_id: int, contenu: str, evenement_id) -> str:
+    from app.config import get_settings
+    from app.diffusion import message_court
+    from app.parametres import lire
+    url = get_settings().url_publique.strip()
+    if not url or not lire(conn, "messages_courts"):
+        return contenu
+    return message_court(type_, notif_id, contenu, url, evenement_id)
+
+
+def _envoyer(tg, message: str, contenu: str):
+    from app.diffusion import Diffuseur, sujet_de
+    if isinstance(tg, Diffuseur):
+        return tg.envoyer(message, sujet_de(contenu))
+    return tg.envoyer(message)
+
+
+def reessayer_echecs(conn: sqlite3.Connection, tg, max_tentatives: int = 3) -> int:
     """Renvoie les notifications en echec (jamais celles deja envoyees)."""
     if not tg.actif:
         return 0
     n = 0
     for r in conn.execute("SELECT * FROM notifications WHERE statut = 'echec' AND tentatives < ?",
                           (max_tentatives,)).fetchall():
-        statut, erreur = tg.envoyer(r["contenu"])
+        statut, erreur = _envoyer(tg, r["message_envoye"] or r["contenu"], r["contenu"])
         conn.execute("UPDATE notifications SET statut = ?, erreur = ?, tentatives = tentatives + 1 "
                      "WHERE id = ?", (statut, erreur, r["id"]))
         n += statut == "envoye"

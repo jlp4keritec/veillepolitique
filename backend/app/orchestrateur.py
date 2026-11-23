@@ -23,6 +23,7 @@ from app.collecte import client_http, collecter
 from app.commandes import traiter
 from app.config import get_settings
 from app.db import get_etat, session, set_etat
+from app.diffusion import diffuseur_depuis_config
 from app.ia import ClientIA, etat_budget, proposer_classification, resumes_vers_evenements, resumeur
 from app.journal import ecrire
 from app.parametres import tous
@@ -47,6 +48,7 @@ class Orchestrateur:
         self.db_path = db_path or s.db_path
         self.http = http or client_http()
         self.tg = tg or Telegram(s.telegram_bot_token.get_secret_value(), s.telegram_chat_id)
+        self.diff = diffuseur_depuis_config(self.tg)  # Telegram + e-mail selon .env
         self.ia = ia or ClientIA(s.anthropic_api_key.get_secret_value())
         self.verrou = threading.Lock()
 
@@ -69,9 +71,9 @@ class Orchestrateur:
             analyser(conn, recents, now)
             res["evenements_analyses"] = len(recents)
             conn.commit()
-            res["alertes"] = traiter_alertes(conn, self.tg, now)
+            res["alertes"] = traiter_alertes(conn, self.diff, now)
             self._controle_budget(conn, now)
-            reessayer_echecs(conn, self.tg)
+            reessayer_echecs(conn, self.diff)
             set_etat(conn, "dernier_cycle", to_iso(now))
             ecrire(conn, "INFO", "orchestrateur", f"cycle : {res}")
             return res
@@ -81,9 +83,9 @@ class Orchestrateur:
         p = tous(conn)
         for seuil in (p["budget_alerte_pct"], 100):
             if b["pct"] >= seuil:
-                notifier(conn, self.tg, "systeme", f"budget:{b['mois']}:{seuil}",
+                notifier(conn, self.diff, "systeme", f"budget:{b['mois']}:{seuil}",
                          f"💶 <b>Budget IA</b> : {b['depense_eur']:.2f} € / {b['budget_eur']:.2f} € "
-                         f"({b['pct']} %)." + (" Appels IA suspendus, repli sur les règles." if seuil >= 100 else ""))
+                         f"({b['pct']} %)." + (" Appels IA suspendus, repli sur les règles." if seuil >= 100 else ""), now=now)
 
     # ------------------------------------------------------------ syntheses
     def envoyer_synthese(self, type_: str, now: datetime | None = None, a_la_demande: bool = True) -> bool:
@@ -116,7 +118,7 @@ class Orchestrateur:
         suffixe = f":demande:{to_iso(now)}" if a_la_demande else ""
         cle = {"briefing": f"briefing:{local.date()}", "synthese": f"synthese:{local.date()}",
                "point": f"point:{to_iso(now)}"}[type_] + suffixe
-        envoye = notifier(conn, self.tg, type_, cle, texte)
+        envoye = notifier(conn, self.diff, type_, cle, texte, now=now)
         if not a_la_demande:
             set_etat(conn, {"briefing": "dernier_briefing_le", "synthese": "derniere_synthese_le",
                             "point": "dernier_point_le"}[type_], to_iso(now))

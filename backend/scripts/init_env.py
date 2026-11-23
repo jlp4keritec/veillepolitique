@@ -25,7 +25,7 @@ def main() -> None:
     modele = EXAMPLE.read_text(encoding="utf-8").splitlines()
     if not ENV.exists():
         ENV.write_text("\n".join(modele) + "\n", encoding="utf-8")
-        print("[OK] backend\\.env cree. Renseignez vos cles dedans (jamais dans le chat).")
+        print("[OK] backend/.env cree. Renseignez vos cles dedans (jamais dans le chat).")
         return
     actuel = ENV.read_text(encoding="utf-8").splitlines()
     presentes = cles(actuel)
@@ -34,7 +34,7 @@ def main() -> None:
     if manquantes:
         with ENV.open("a", encoding="utf-8") as f:
             f.write("\n# Ajoute automatiquement\n" + "\n".join(manquantes) + "\n")
-        print(f"[OK] backend\\.env complete : {len(manquantes)} cle(s) ajoutee(s).")
+        print(f"[OK] backend/.env complete : {len(manquantes)} cle(s) ajoutee(s).")
 
 
 if __name__ == "__main__":

@@ -144,6 +144,7 @@ COLONNES_AJOUTEES = [
     ("sources", "erreurs_consecutives", "INTEGER NOT NULL DEFAULT 0"),
     ("articles", "acteurs_titre", "TEXT NOT NULL DEFAULT '[]'"),
     ("evenements", "acteurs_titre", "TEXT NOT NULL DEFAULT '[]'"),
+    ("notifications", "message_envoye", "TEXT"),
 ]
 
 

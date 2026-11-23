@@ -30,6 +30,26 @@ def charger_defaut(path: Path = DEFAUT_PATH) -> list[SourceIn]:
     return [SourceIn.model_validate(s) for s in data["sources"]]
 
 
+# Sources "a identifier" des versions precedentes dont le flux a ete trouve : mises a jour
+# SEULEMENT si J ne les a pas modifiees (toujours inactives, type site, meme adresse).
+SOURCES_MAJ: dict[str, str] = {
+    "https://www.leprogres.fr/": "https://www.leprogres.fr/rss",
+    "https://www.senat.fr/": "https://www.senat.fr/rss/presse.rss",
+}
+
+
+def _maj_sources_trouvees(conn, sources: list[SourceIn]) -> None:
+    par_url = {str(s.url): s for s in sources}
+    for ancienne, nouvelle in SOURCES_MAJ.items():
+        s = par_url.get(nouvelle)
+        if not s or conn.execute("SELECT 1 FROM sources WHERE url = ?", (nouvelle,)).fetchone():
+            continue
+        conn.execute(
+            "UPDATE sources SET nom = ?, url = ?, type = ?, actif = ?, note = ?, frequence_minutes = ? "
+            "WHERE url = ? AND actif = 0 AND type = 'site'",
+            (s.nom, nouvelle, s.type, s.actif, s.note, s.frequence_minutes, ancienne))
+
+
 def seed_sources(db_path: Path, sources: list[SourceIn] | None = None) -> int:
     """Ajoute les sources absentes (cle = URL). N'ecrase jamais une source existante.
 
@@ -38,6 +58,7 @@ def seed_sources(db_path: Path, sources: list[SourceIn] | None = None) -> int:
     sources = sources if sources is not None else charger_defaut()
     ajoutees = 0
     with session(db_path) as conn:
+        _maj_sources_trouvees(conn, sources)
         for s in sources:
             cur = conn.execute(
                 """INSERT OR IGNORE INTO sources

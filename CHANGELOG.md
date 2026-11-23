@@ -1,5 +1,39 @@
 # CHANGELOG - VEILLE
 
+## [0.4.1] - 2026-11-23 - Installation sur PC Windows
+
+### Corrige
+- Les messages (alertes, points, briefings) sont dates avec l'heure du traitement, et non
+  l'heure de l'ordinateur au moment de l'ecriture (meme valeur en usage reel ; coherence des tests).
+- Test test_horloge_synthese_et_points : il ne passait que si la date du jour etait avant le
+  23/11/2026. Un evenement deja alerte n'est pas repete dans le point suivant : le test utilise
+  desormais un evenement sous le seuil d'alerte.
+
+### Ajoute
+- .gitattributes : scripts .sh/.command toujours en fins de ligne Unix, .cmd/.bat/.ps1 en Windows
+  (evite qu'un commit fait depuis le PC casse les scripts du VPS).
+- docs/livraisons/README-2026-11-23-pc.md : installation sur un PC neuf.
+
+## [0.4.0] - 2026-11-22 - Diffusion e-mail, kit VPS, nouvelles sources
+
+### Ajoute
+- Diffusion (F05-F08) : canal e-mail (SMTP, Gmail compatible) en plus de Telegram ; un seul
+  destinataire (J). Messages courts avec lien "Lire en entier" vers les pages si URL_PUBLIQUE
+  est renseignee (archive toujours complete). Un canal en panne n'empeche pas l'autre.
+- Kit de mise en ligne VPS pilote depuis le Mac : deploy-veille.command (--init, --copier-base),
+  deploy/vps-installer.sh, ecosystem.config.cjs (PM2), vhost Nginx, Certbot, sauvegarde
+  quotidienne de la base (30 gardees), tests executes sur le VPS, retour arriere automatique.
+- Garde-fou : ENVIRONNEMENT=vps refuse de demarrer sans MOT_DE_PASSE_PAGES (12 caracteres).
+- scripts/sauvegarde_db.py (copie coherente + verification), scripts/definir_env.py (secret
+  lu sur l'entree standard, jamais en argument).
+- Sources : Vie-publique Discours publics, LCP Assemblee nationale ; Senat (communiques de presse)
+  et Le Progres activés avec leur flux. Notes "pas de flux trouve" pour Elysee, Gouvernement,
+  Assemblee, Metropole, Region.
+
+### Securite
+- Les tests n'utilisent jamais les secrets du vrai .env (aucun e-mail, Telegram ni appel IA reel).
+- deploy-config.json exclu de git ; le paquet de deploiement est verifie (ni .env ni base).
+
 ## [0.3.1] - 2026-11-22 - Design "Glassy Dashboard"
 
 ### Modifie

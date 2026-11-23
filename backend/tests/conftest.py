@@ -11,6 +11,24 @@ from app.db import connect
 from app.initialisation import initialiser
 
 
+SECRETS_NEUTRALISES = {
+    "ANTHROPIC_API_KEY": "", "TELEGRAM_BOT_TOKEN": "", "TELEGRAM_CHAT_ID": "",
+    "SMTP_HOTE": "", "SMTP_UTILISATEUR": "", "SMTP_MOT_DE_PASSE": "", "EMAIL_DESTINATAIRE": "",
+    "EMAIL_EXPEDITEUR": "", "URL_PUBLIQUE": "", "MOT_DE_PASSE_PAGES": "", "ENVIRONNEMENT": "local",
+    "SCHEDULER_ACTIF": "0",
+}
+
+
+@pytest.fixture(autouse=True)
+def isoler_des_vrais_secrets(monkeypatch):
+    """Les tests n'utilisent JAMAIS les cles du vrai .env (pas de vrai e-mail, Telegram ni appel IA)."""
+    for k, v in SECRETS_NEUTRALISES.items():
+        monkeypatch.setenv(k, v)
+    get_settings.cache_clear()
+    yield
+    get_settings.cache_clear()
+
+
 @pytest.fixture
 def base(tmp_path, monkeypatch):
     """Base temporaire initialisee (parametres + themes), sans les sources par defaut."""

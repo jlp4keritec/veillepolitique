@@ -67,7 +67,9 @@ def test_horloge_rattrapage_limite(base, conn):
 
 
 def test_horloge_synthese_et_points(base, conn):
-    orch, tg = _orch(base, conn, paris(9))
+    # 2 sources : evenement sous le seuil d'alerte, donc "nouveau" pour le point de 09:00
+    # (un evenement deja alerte n'est pas repete dans le point qui suit)
+    orch, tg = _orch(base, conn, paris(9), n=2)
     orch.cycle(paris(9))
     assert orch.horloge(paris(8, 0)) == ["briefing"]
     assert orch.horloge(paris(9, 0)) == ["point"]          # 1er point de la journee

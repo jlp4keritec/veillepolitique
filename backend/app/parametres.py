@@ -99,6 +99,8 @@ DEFAUTS: dict[str, tuple[Any, str]] = {
     "alerte_delta_sources": (2, "Nouvelles sources qui justifient une mise a jour d'alerte"),
     "alerte_max_mises_a_jour": (3, "Nombre maximal de mises a jour par evenement"),
     "alerte_fiabilite_min": (4, "Fiabilite min. d'une source unique pour alerter"),
+    # --- Diffusion ---
+    "messages_courts": (True, "Briefing/synthese/point envoyes en court avec lien (si URL_PUBLIQUE)"),
     # --- Pages ---
     "nom_affiche": ("Jean-Luc", "Prenom affiche sur l'accueil des pages"),
     # --- Syntheses (F06-F08) ---

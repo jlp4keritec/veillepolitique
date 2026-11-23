@@ -27,6 +27,17 @@ class Settings(BaseSettings):
     veille_db_path: str = "data/veille.db"
     fuseau_horaire: str = "Europe/Paris"
     scheduler_actif: bool = True
+    # Adresse publique des pages (ex. https://veille.mesoutilsagile.com) : liens dans les messages
+    url_publique: str = ""
+    # E-mail (Gmail : smtp.gmail.com, port 587, mot de passe d'application)
+    smtp_hote: str = ""
+    smtp_port: int = 587
+    smtp_utilisateur: str = ""
+    smtp_mot_de_passe: SecretStr = SecretStr("")
+    email_destinataire: str = ""
+    email_expediteur: str = ""
+    # vps = production : mot de passe des pages obligatoire
+    environnement: str = "local"
     # Vide = pas de protection (usage local). Renseigne = pages et API protegees.
     mot_de_passe_pages: SecretStr = SecretStr("")
 

@@ -13,7 +13,7 @@ from datetime import datetime, timedelta
 
 from app.parametres import tous
 from app.syntheses import format_alerte
-from app.telegram import Telegram, notifier
+from app.telegram import notifier
 from app.util import to_iso
 
 
@@ -53,7 +53,7 @@ def decision(conn: sqlite3.Connection, evt: sqlite3.Row, p: dict) -> tuple[str |
     return None, "deja alerte, pas d'element nouveau significatif"
 
 
-def traiter_alertes(conn: sqlite3.Connection, tg: Telegram, now: datetime) -> list[int]:
+def traiter_alertes(conn: sqlite3.Connection, tg, now: datetime) -> list[int]:
     p = tous(conn)
     if not p["alertes_actives"]:
         return []
@@ -65,6 +65,6 @@ def traiter_alertes(conn: sqlite3.Connection, tg: Telegram, now: datetime) -> li
         if not cle:
             continue
         maj = not cle.endswith(":1")
-        if notifier(conn, tg, "alerte", cle, format_alerte(conn, evt, maj), evt["id"], evt["score"], evt["nb_sources"]):
+        if notifier(conn, tg, "alerte", cle, format_alerte(conn, evt, maj), evt["id"], evt["score"], evt["nb_sources"], now=now):
             envoyees.append(evt["id"])
     return envoyees

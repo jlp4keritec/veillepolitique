@@ -8,6 +8,7 @@ import json
 import logging
 from urllib.parse import quote
 from contextlib import asynccontextmanager
+from pathlib import Path
 from typing import Any, Literal
 
 from fastapi import FastAPI, HTTPException, Query, Request
@@ -28,11 +29,24 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(mess
 logging.getLogger("apscheduler").setLevel(logging.WARNING)
 logging.getLogger("httpx").setLevel(logging.WARNING)
 ETAT: dict = {}
+_FICHIER_DEPLOIEMENT = Path(__file__).resolve().parent.parent / "DEPLOIEMENT"
+DEPLOIEMENT = _FICHIER_DEPLOIEMENT.read_text(encoding="utf-8").strip() if _FICHIER_DEPLOIEMENT.exists() else "local"
+
+
+def verifier_production(s) -> None:
+    """Sur le VPS (ENVIRONNEMENT=vps), refuse de demarrer sans mot de passe des pages solide."""
+    if s.environnement.strip().lower() != "vps":
+        return
+    mdp = s.mot_de_passe_pages.get_secret_value()
+    if len(mdp) < 12:
+        raise RuntimeError("ENVIRONNEMENT=vps : MOT_DE_PASSE_PAGES obligatoire (12 caracteres minimum) "
+                           "dans backend/.env. Demarrage refuse pour ne pas exposer la veille.")
 
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     s = get_settings()
+    verifier_production(s)
     initialiser(s.db_path)
     ETAT["orch"] = Orchestrateur(s.db_path)
     if s.scheduler_actif:
@@ -92,6 +106,7 @@ def health() -> dict:
     return {
         "status": "ok",
         "version": __version__,
+        "deploiement": DEPLOIEMENT,
         "sources": nb,
         "sources_actives": nb_actives,
         "collecte_active": p["collecte_active"],

@@ -1,4 +1,5 @@
 # Secrets
+deploy-config.json
 .env
 *.env
 !.env.example
@@ -22,6 +23,9 @@ build/
 logs/
 .cache/
 *.zip
+
+# Identifiant de deploiement (genere sur le VPS)
+backend/DEPLOIEMENT
 
 # Mac
 .DS_Store

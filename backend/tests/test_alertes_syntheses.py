@@ -75,7 +75,7 @@ def test_notifier_cle_unique_meme_si_echec(conn):
     assert not notifier(conn, tg, "point", "point:x", "texte")
     r = conn.execute("SELECT * FROM notifications").fetchone()
     assert r["statut"] == "echec"
-    assert conn.execute("SELECT COUNT(*) FROM journal WHERE composant='telegram'").fetchone()[0] == 1
+    assert conn.execute("SELECT COUNT(*) FROM journal WHERE composant='diffusion'").fetchone()[0] == 1
 
 
 def test_mode_simulation_sans_token(conn):

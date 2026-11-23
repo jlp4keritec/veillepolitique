@@ -29,7 +29,7 @@ def db(tmp_path, monkeypatch):
 
 def test_sources_defaut_valides():
     sources = charger_defaut()
-    assert len(sources) >= 10
+    assert len(sources) >= 15
     urls = [str(s.url) for s in sources]
     assert len(urls) == len(set(urls)), "URL en double dans sources_defaut.json"
     assert any(s.zone == "regional" for s in sources)
@@ -87,3 +87,18 @@ def test_env_exclu_de_git():
     lignes = (ROOT / ".gitignore").read_text(encoding="utf-8").splitlines()
     assert ".env" in lignes
     assert "backend/data/*.db" in lignes
+
+
+def test_sources_trouvees_mises_a_jour_si_non_modifiees(db):
+    import sqlite3 as sq
+    with sq.connect(db) as c:  # etat d'une base v0.1 : Senat et Progres "a identifier"
+        for nom, url in (("Senat", "https://www.senat.fr/"), ("Le Progres - Lyon", "https://www.leprogres.fr/")):
+            c.execute("INSERT INTO sources (nom,url,type,categorie,niveau,zone,frequence_minutes,actif) "
+                      "VALUES (?,?,'site','media',2,'national',30,0)", (nom, url))
+        c.execute("UPDATE sources SET actif = 1 WHERE url = 'https://www.leprogres.fr/'")  # modifiee par J
+    seed_sources(db)
+    urls = {s["url"]: s for s in lister_sources(db)}
+    assert "https://www.senat.fr/rss/presse.rss" in urls and urls["https://www.senat.fr/rss/presse.rss"]["actif"] == 1
+    assert "https://www.senat.fr/" not in urls
+    assert "https://www.leprogres.fr/" in urls  # J l'avait modifiee : jamais touchee
+    assert seed_sources(db) == 0  # idempotent

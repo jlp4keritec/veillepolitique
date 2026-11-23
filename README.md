@@ -20,6 +20,7 @@ Principe : les agents IA **proposent**, les règles de J **décident**, l'exécu
 | `test-backend.command` | Lance les tests |
 | `relancer-tout.command` | Ferme, teste, relance |
 | `backup-veille.command` | Sauvegarde ZIP dans `~/veille-backups/` |
+| `deploy-veille.command` | Mise en ligne sur le VPS (voir `docs/DEPLOIEMENT.md`) |
 
 Configuration : `backend\.env` (Mac : `backend/.env`) (voir `docs/livraisons/README-2026-11-22-mvp.md`).
 
@@ -37,4 +38,4 @@ Mot de passe : `MOT_DE_PASSE_PAGES` dans `backend/.env` (vide = pas de protectio
 `notifications` · `journal` · `couts` · `question` · `cycle` · `syntheses/{type}` · `pause` · `reprise`
 
 ## État
-Version 0.3.0 : MVP + pages de lecture. Collecte testée en réel le 22/11/2026. Voir `CHANGELOG.md`.
+Version 0.4.0 : MVP + pages + e-mail + kit de mise en ligne VPS (`docs/DEPLOIEMENT.md`). Voir `CHANGELOG.md`.
