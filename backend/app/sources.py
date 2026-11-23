@@ -39,6 +39,8 @@ SOURCES_MAJ: dict[str, str] = {
     "https://www.info.gouv.fr/": "https://www.info.gouv.fr/rss/actualites.xml",
     "https://www.assemblee-nationale.fr/": "https://www2.assemblee-nationale.fr/feeds/detail/crs",
     "https://www.grandlyon.com/": "https://www.grandlyon.com/actualites.xml",
+    # 23/11/2026 : pas de flux, lecteur de page (app/lecteurs.py)
+    "https://www.elysee.fr/": "https://www.elysee.fr/toutes-les-actualites",
 }
 
 

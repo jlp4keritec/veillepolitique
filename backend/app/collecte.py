@@ -1,4 +1,5 @@
-"""Agent de collecte (F01) : recupere les flux RSS des sources actives et dues.
+"""Agent de collecte (F01) : recupere les flux RSS des sources actives et dues,
+et les pages liste des sites officiels sans flux (type "site", voir app/lecteurs.py).
 
 - Respecte la frequence de chaque source et les en-tetes ETag / Last-Modified.
 - Taille de flux limitee, delai d'attente court.
@@ -8,6 +9,7 @@
 """
 
 import calendar
+import re
 import sqlite3
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
@@ -17,10 +19,13 @@ import httpx
 
 from app import __version__
 from app.journal import ecrire
+from app.lecteurs import lire_page
 from app.parametres import lire
 from app.util import empreinte, from_iso, nettoyer_html, normaliser, to_iso, url_canonique
 
 USER_AGENT = f"VEILLE/{__version__} (veille personnelle, lecture RSS)"
+ACCEPT_RSS = "application/rss+xml, application/xml, text/xml, */*"
+ACCEPT_SITE = "text/html, application/xhtml+xml, */*;q=0.8"
 DELAI_MAX_MINUTES = 240
 
 
@@ -34,7 +39,7 @@ class ResultatCollecte:
 
 def sources_dues(conn: sqlite3.Connection, now: datetime) -> list[sqlite3.Row]:
     dues = []
-    for s in conn.execute("SELECT * FROM sources WHERE actif = 1 AND type = 'rss' ORDER BY priorite"):
+    for s in conn.execute("SELECT * FROM sources WHERE actif = 1 AND type IN ('rss', 'site') ORDER BY priorite"):
         if not s["derniere_collecte"]:
             dues.append(s)
             continue
@@ -59,7 +64,8 @@ def _date_entree(e, now: datetime) -> datetime:
 
 def _telecharger(client: httpx.Client, source: sqlite3.Row, max_octets: int):
     """Retourne (code HTTP, en-tetes, contenu). Contenu vide si 304."""
-    headers = {"User-Agent": USER_AGENT, "Accept": "application/rss+xml, application/xml, text/xml, */*"}
+    accept = ACCEPT_SITE if source["type"] == "site" else ACCEPT_RSS
+    headers = {"User-Agent": USER_AGENT, "Accept": accept}
     if source["etag"]:
         headers["If-None-Match"] = source["etag"]
     if source["last_modified"]:
@@ -87,24 +93,22 @@ def collecter_source(conn: sqlite3.Connection, client: httpx.Client, source: sql
     if code == 304:
         _maj_source(conn, source["id"], maj)
         return 0
-    flux = feedparser.parse(contenu)
-    if flux.bozo and not flux.entries:
-        raise ValueError(f"flux illisible : {type(flux.bozo_exception).__name__}")
+    entrees = _entrees(source, contenu, entetes, now)
     maj["etag"] = entetes.get("ETag")
     maj["last_modified"] = entetes.get("Last-Modified")
 
     nouveaux = 0
-    for e in flux.entries:
-        lien = (e.get("link") or "").strip()
-        titre = nettoyer_html(e.get("title") or "", 500)
+    for e in entrees:
+        lien = (e["lien"] or "").strip()
+        titre = nettoyer_html(e["titre"] or "", 500)
         if not lien.startswith(("http://", "https://")) or not titre:
             continue  # contenu incomplet : ignore
         url = url_canonique(lien)
-        guid = (e.get("id") or "")[:500] or None
+        guid = (e["guid"] or "")[:500] or None
         if guid and conn.execute("SELECT 1 FROM articles WHERE source_id = ? AND guid = ?",
                                  (source["id"], guid)).fetchone():
             continue
-        extrait = nettoyer_html(e.get("summary") or e.get("description") or "", max_extrait)
+        extrait = nettoyer_html(e["extrait"] or "", max_extrait)
         titre_norm = normaliser(titre)
         # Meme titre, meme source, derniere 48 h : republication -> doublon
         limite = to_iso(now - timedelta(hours=48))
@@ -117,11 +121,31 @@ def collecter_source(conn: sqlite3.Connection, client: httpx.Client, source: sql
                 publie_le, collecte_le)
                VALUES (?,?,?,?,?,?,?,?,?,?)""",
             (source["id"], url, guid or empreinte(url), titre, titre_norm, extrait,
-             normaliser(extrait), (e.get("author") or None), to_iso(_date_entree(e, now)), to_iso(now)),
+             normaliser(extrait), e["auteur"], to_iso(e["date"]), to_iso(now)),
         )
         nouveaux += cur.rowcount
     _maj_source(conn, source["id"], maj)
     return nouveaux
+
+
+def _entrees(source: sqlite3.Row, contenu: bytes, entetes, now: datetime) -> list[dict]:
+    """Flux RSS ou page liste -> entrees communes (titre, lien, guid, extrait, auteur, date)."""
+    if source["type"] == "site":
+        page = lire_page(source["url"], contenu, _encodage(entetes), now)
+        # Le type de publication (ex. "Communique de presse") sert d'extrait : tes regles peuvent s'en servir
+        return [{"titre": p.titre, "lien": p.lien, "guid": p.lien, "extrait": p.nature or "",
+                 "auteur": None, "date": p.publie_le} for p in page]
+    flux = feedparser.parse(contenu)
+    if flux.bozo and not flux.entries:
+        raise ValueError(f"flux illisible : {type(flux.bozo_exception).__name__}")
+    return [{"titre": e.get("title"), "lien": e.get("link"), "guid": e.get("id"),
+             "extrait": e.get("summary") or e.get("description"), "auteur": e.get("author") or None,
+             "date": _date_entree(e, now)} for e in flux.entries]
+
+
+def _encodage(entetes) -> str | None:
+    m = re.search(r"charset=([\w-]+)", entetes.get("Content-Type") or "", re.I)
+    return m.group(1) if m else None
 
 
 def _maj_source(conn: sqlite3.Connection, source_id: int, champs: dict) -> None:

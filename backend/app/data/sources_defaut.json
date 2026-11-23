@@ -132,8 +132,8 @@
       "note": "Actualites du Gouvernement (flux officiel, verifie le 23/11/2026)"
     },
     {
-      "nom": "Elysee",
-      "url": "https://www.elysee.fr/",
+      "nom": "Elysee - Toutes les actualites",
+      "url": "https://www.elysee.fr/toutes-les-actualites",
       "type": "site",
       "categorie": "institutionnel",
       "niveau": 1,
@@ -141,8 +141,8 @@
       "fiabilite": 5,
       "priorite": 1,
       "frequence_minutes": 60,
-      "actif": 0,
-      "note": "Pas de flux RSS trouve (reverifie le 23/11/2026) : discours via Vie-publique"
+      "actif": 1,
+      "note": "Pas de flux RSS : lecteur de page (date, type, titre, lien). Communiques compris."
     },
     {
       "nom": "Assemblee nationale - Comptes rendus des seances",

@@ -1,5 +1,24 @@
 # CHANGELOG - VEILLE
 
+## [0.11.0] - 2026-11-23 - Lecteur de page pour les sites sans flux : Elysee (F01)
+
+### Ajoute
+- Lecteur de page (app/lecteurs.py) : pour un site officiel SANS flux RSS, lit uniquement sa page liste
+  et garde date, type, titre et lien (jamais l'article entier, jamais la recherche du site).
+  Bibliotheque standard seulement : aucune dependance ajoutee.
+- Premiere source : Elysee - Toutes les actualites (https://www.elysee.fr/toutes-les-actualites),
+  1 lecture par heure. robots.txt du site : page autorisee (seule la recherche est interdite).
+  Le type de publication (ex. "Communique de presse") est stocke comme extrait : tes regles peuvent s'en servir.
+  Aucun changement de score par defaut.
+- Securites : un lecteur par site declare (sinon erreur claire) ; page sans publication reconnue
+  (site refait) -> source en "erreur", rien n'est invente ; date tiree de l'adresse, jamais dans le futur ;
+  liens hors elysee.fr ignores ; 50 publications max par lecture.
+- Base existante : l'ancienne ligne "Elysee" desactivee passe sur la page liste (sauf si tu l'as modifiee).
+- 6 tests (146 au total).
+
+### Ecart au cahier (valide par J le 23/11/2026)
+- Le cahier privilegie API et flux RSS. Lecture d'une page HTML acceptee pour l'Elysee, faute de flux.
+
 ## [0.10.1] - 2026-11-23 - Trois flux officiels retrouves (F01)
 
 ### Ajoute
