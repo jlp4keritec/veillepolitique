@@ -8,6 +8,8 @@
 - Test test_horloge_synthese_et_points : il ne passait que si la date du jour etait avant le
   23/11/2026. Un evenement deja alerte n'est pas repete dans le point suivant : le test utilise
   desormais un evenement sous le seuil d'alerte.
+- Test test_definir_env : la verification des droits du fichier .env (600) ne s'applique
+  plus sous Windows, qui ne gere pas ces droits (toujours verifiee sur le VPS et le Mac).
 
 ### Ajoute
 - .gitattributes : scripts .sh/.command toujours en fins de ligne Unix, .cmd/.bat/.ps1 en Windows

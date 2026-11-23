@@ -1,5 +1,6 @@
 """Outils de deploiement : sauvegarde de la base, ecriture de secrets dans .env."""
 
+import os
 import sqlite3
 import stat
 
@@ -28,7 +29,8 @@ def test_definir_env(tmp_path):
     definir("NOUVELLE", "x", f)
     contenu = f.read_text()
     assert "MOT_DE_PASSE_PAGES=secret long 123\n" in contenu and "AUTRE=1" in contenu and "NOUVELLE=x" in contenu
-    assert stat.S_IMODE(f.stat().st_mode) == 0o600
+    if os.name != "nt":  # droits Unix (VPS, Mac) ; Windows ne gere pas ces droits
+        assert stat.S_IMODE(f.stat().st_mode) == 0o600
     with pytest.raises(ValueError):
         definir("cle; rm", "x", f)
     with pytest.raises(ValueError):
