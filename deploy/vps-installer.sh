@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ============================================================
-# vps-installer.sh - execute SUR LE VPS par deploy-veille.command
+# vps-installer.sh - execute SUR LE VPS par deploy-veille.ps1 (PC) ou deploy-veille.command (Mac)
 #   bash vps-installer.sh preparer   : code, environnement Python, .env, base, tests
 #   bash vps-installer.sh demarrer   : PM2, controle de sante (retour arriere si KO),
 #                                      Nginx, Certbot, sauvegarde quotidienne
@@ -12,7 +12,7 @@ set -euo pipefail
 ETAPE="${1:-}"
 REMOTE="${REMOTE_DIR:-$HOME/veille}"
 FQDN="${FQDN:-veille.mesoutilsagile.com}"
-APP_PORT="${APP_PORT:-5710}"
+APP_PORT="${APP_PORT:-5727}"
 INIT="${INIT:-0}"
 SAUV_CODE="$HOME/backups/veille-code"
 PAQUET="${PAQUET:-/tmp/veille_deploy.tgz}"
@@ -87,7 +87,7 @@ preparer() {
         [ -f data/veille.db ] && cp data/veille.db "data/veille.db.avant-import-$(date +%Y%m%d-%H%M%S)"
         rm -f data/veille.db-wal data/veille.db-shm
         mv "$BASE_IMPORT" data/veille.db
-        ok "base importee depuis le Mac"
+        ok "base importee depuis le poste local"
     fi
     "$PY" scripts/init_db.py
 

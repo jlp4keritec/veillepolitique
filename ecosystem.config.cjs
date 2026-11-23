@@ -1,5 +1,5 @@
 // PM2 - VEILLE sur le VPS (une seule instance : le planificateur ne doit tourner qu'une fois)
-const port = process.env.VEILLE_PORT || '5710';
+const port = process.env.VEILLE_PORT || '5727';
 module.exports = {
   apps: [{
     name: 'veille',

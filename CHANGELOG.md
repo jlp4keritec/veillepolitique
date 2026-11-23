@@ -1,5 +1,20 @@
 # CHANGELOG - VEILLE
 
+## [0.5.0] - 2026-11-23 - Deploiement depuis le PC Windows
+
+### Ajoute
+- deploy-veille.ps1 + deploy-veille.bat : mise en ligne sur le VPS depuis le PC (-Init, -CopierBase,
+  -SkipNginx, -SkipCertbot). Verifie le port avant tout envoi, tests locaux obligatoires, paquet tar.gz
+  controle (ni .env, ni base, ni deploy-config.json, ni chemin Windows), mot de passe des pages envoye
+  par l'entree standard (jamais affiche, ecrit ou journalise). Reutilise deploy/vps-installer.sh.
+- deploy-config.json propre a VEILLE (hors git) ; le script refuse tout remoteDir autre que
+  /home/ubuntu/veille.
+
+### Modifie
+- Port interne par defaut 5710 -> 5727 (5710 occupe sur le VPS) : ecosystem.config.cjs,
+  vps-installer.sh, deploy-veille.command, deploy-config.example.json, docs/DEPLOIEMENT.md.
+- docs/DEPLOIEMENT.md : procedure PC en premier.
+
 ## [0.4.1] - 2026-11-23 - Installation sur PC Windows
 
 ### Corrige

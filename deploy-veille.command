@@ -38,7 +38,7 @@ done
 [ -n "$CFG" ] || die "deploy-config.json introuvable. Copiez deploy/deploy-config.example.json en ~/veille/deploy-config.json et adaptez sshKeyPath."
 lire() { /usr/bin/python3 -c "import json,os,sys; v=json.load(open(sys.argv[1])).get(sys.argv[2], sys.argv[3]); print(os.path.expanduser(str(v)))" "$CFG" "$1" "$2"; }
 HOTE=$(lire host ""); UTIL=$(lire user ubuntu); PORT_SSH=$(lire port 22); CLE=$(lire sshKeyPath "")
-FQDN=$(lire fqdn veille.mesoutilsagile.com); APP_PORT=$(lire appPort 5710)
+FQDN=$(lire fqdn veille.mesoutilsagile.com); APP_PORT=$(lire appPort 5727)
 [ -n "$HOTE" ] && [ -f "$CLE" ] || die "host ou sshKeyPath invalide dans $CFG"
 SSH=(ssh -i "$CLE" -p "$PORT_SSH" -o ConnectTimeout=15 -o StrictHostKeyChecking=accept-new "$UTIL@$HOTE")
 SCP=(scp -i "$CLE" -P "$PORT_SSH" -o ConnectTimeout=15 -o StrictHostKeyChecking=accept-new)

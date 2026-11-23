@@ -6,5 +6,5 @@
   "sshKeyPath": "~/.ssh/id_ed25519",
   "remoteDir": "/home/ubuntu/veille",
   "fqdn": "veille.mesoutilsagile.com",
-  "appPort": "5710"
+  "appPort": "5727"
 }
